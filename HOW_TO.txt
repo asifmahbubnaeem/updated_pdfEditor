@@ -1,0 +1,25 @@
+How to run fronend:
+
+cd frontend
+npm install
+npm run dev
+
+
+How to run backend:
+
+cd backend
+npm install
+node server.js
+
+
+make sure following are installed in backend machine:
+
+ghostscript
+qpdf
+poppler --> brew install poppler
+pdf2docx --> a python library --> local machine if python or python3 is used as part of virtual enviroment then while using python3 command as part of the convert_docx.py file, use the exact virtual environment location, like I have used a variable VENV 
+
+
+pandas --> python lib, for table extraction
+openpyxl --> python lib, for table extraction
+google-genai
