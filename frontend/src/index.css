@@ -1,0 +1,48 @@
+/* Global reset and layout so header/footer/content behave as expected */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background-color: #f3f4f6; /* light gray background similar to bg-gray-100 */
+  color: #111827;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Ad sidebars: visible on large screens only to avoid crowding mobile */
+.ad-sidebar-left,
+.ad-sidebar-right {
+  width: 180px;
+}
+
+@media (max-width: 1024px) {
+  .ad-sidebar-left,
+  .ad-sidebar-right {
+    display: none;
+  }
+}
