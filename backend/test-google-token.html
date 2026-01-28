@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Get Google ID Token</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <h1>Get Google ID Token for Postman Testing</h1>
+    <div id="g_id_onload"
+         data-client_id="120967184949-ej48mvjt24poid9hk65abofcbehsb8at.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+    
+    <div id="token-display" style="margin-top: 20px; padding: 10px; background: #f0f0f0; display: none;">
+        <h3>Your ID Token (copy this):</h3>
+        <textarea id="token" style="width: 100%; height: 200px;"></textarea>
+        <p><strong>Use this token in Postman:</strong></p>
+        <pre>POST http://localhost:3000/api/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "PASTE_TOKEN_HERE"
+}</pre>
+    </div>
+
+    <script>
+        function handleCredentialResponse(response) {
+            document.getElementById('token').value = response.credential;
+            document.getElementById('token-display').style.display = 'block';
+            console.log('ID Token:', response.credential);
+        }
+    </script>
+</body>
+</html>
