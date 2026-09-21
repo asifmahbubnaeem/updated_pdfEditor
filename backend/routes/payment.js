@@ -4,6 +4,7 @@ import { body, validationResult } from 'express-validator';
 import { authenticate } from '../middleware/auth.js';
 import paymentService from '../services/paymentService.js';
 import db from '../config/database.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -49,7 +50,7 @@ router.post(
         url: session.url,
       });
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      logger.error('Error creating checkout session:', error);
       next(error);
     }
   }
@@ -72,7 +73,7 @@ router.post(
         url: session.url,
       });
     } catch (error) {
-      console.error('Error creating portal session:', error);
+      logger.error('Error creating portal session:', error);
       if (error.message === 'No active subscription found') {
         return res.status(404).json({
           error: 'No active subscription found',
@@ -112,7 +113,7 @@ router.get(
             subscription.stripe_subscription_id
           );
         } catch (error) {
-          console.error('Error fetching Stripe subscription:', error);
+          logger.error('Error fetching Stripe subscription:', error);
           // Continue without Stripe details
         }
       }
@@ -130,7 +131,7 @@ router.get(
         tier: subscription.tier,
       });
     } catch (error) {
-      console.error('Error getting subscription:', error);
+      logger.error('Error getting subscription:', error);
       next(error);
     }
   }
@@ -168,7 +169,7 @@ router.post(
         ...result,
       });
     } catch (error) {
-      console.error('Error canceling subscription:', error);
+      logger.error('Error canceling subscription:', error);
       if (error.message === 'No active subscription found') {
         return res.status(404).json({
           error: 'No active subscription found',
@@ -194,7 +195,7 @@ router.post(
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
-      console.error('Stripe webhook secret not configured');
+      logger.error('Stripe webhook secret not configured');
       return res.status(500).json({ error: 'Webhook secret not configured' });
     }
 
@@ -204,7 +205,7 @@ router.post(
       // Verify webhook signature
       event = Stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
-      console.error('Webhook signature verification failed:', err.message);
+      logger.error('Webhook signature verification failed:', err.message);
       return res.status(400).json({ error: `Webhook Error: ${err.message}` });
     }
 
@@ -213,7 +214,7 @@ router.post(
       await paymentService.handleWebhook(event);
       res.json({ received: true });
     } catch (error) {
-      console.error('Error handling webhook:', error);
+      logger.error('Error handling webhook:', error);
       res.status(500).json({ error: 'Webhook handler failed' });
     }
   }

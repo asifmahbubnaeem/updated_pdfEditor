@@ -1,4 +1,5 @@
 import db from '../config/database.js';
+import logger from '../utils/logger.js';
 
 /**
  * Log usage of an operation
@@ -32,7 +33,7 @@ export const logUsage = async (userId, operationType, fileSize = 0, success = tr
     
     return logEntry;
   } catch (error) {
-    console.error('Error logging usage:', error);
+    logger.error('Error logging usage:', error);
     // Don't throw - usage logging shouldn't break the app
     return null;
   }
@@ -61,7 +62,7 @@ export const getUserUsageStats = async (userId) => {
       quota: quota,
     };
   } catch (error) {
-    console.error('Error getting usage stats:', error);
+    logger.error('Error getting usage stats:', error);
     return {
       daily: { used: 0, limit: 0 },
       monthly: { used: 0, limit: 0 },
@@ -95,7 +96,7 @@ export const canPerformOperation = async (userId, tier = 'free') => {
 
     return { allowed: true, used: dailyUsage, limit: limit };
   } catch (error) {
-    console.error('Error checking operation permission:', error);
+    logger.error('Error checking operation permission:', error);
     // Fail open - allow operation if check fails
     return { allowed: true };
   }

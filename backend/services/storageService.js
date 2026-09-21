@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import dotenv from 'dotenv';
+import logger from '../utils/logger.js';
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.R2_BUCKET_NAME;
 
 if (!BUCKET_NAME || !process.env.R2_ACCOUNT_ID) {
-  console.warn('R2 storage not configured. File uploads will use local storage.');
+  logger.warn('R2 storage not configured. File uploads will use local storage.');
 }
 
 export const storageService = {
@@ -54,7 +55,7 @@ export const storageService = {
       await s3Client.send(command);
       return key;
     } catch (error) {
-      console.error('R2 upload error:', error);
+      logger.error('R2 upload error:', error);
       throw new Error(`Failed to upload file: ${error.message}`);
     }
   },
@@ -78,7 +79,7 @@ export const storageService = {
     try {
       return await getSignedUrl(s3Client, command, { expiresIn });
     } catch (error) {
-      console.error('Error generating signed URL:', error);
+      logger.error('Error generating signed URL:', error);
       throw new Error(`Failed to generate download URL: ${error.message}`);
     }
   },
@@ -101,7 +102,7 @@ export const storageService = {
     try {
       await s3Client.send(command);
     } catch (error) {
-      console.error('Error deleting file:', error);
+      logger.error('Error deleting file:', error);
       throw new Error(`Failed to delete file: ${error.message}`);
     }
   },

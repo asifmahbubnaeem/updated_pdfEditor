@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      # Matches the Node version used in backend/Dockerfile (node:20-bookworm-slim)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check server entrypoint
+        run: node --check server.js
+
+      - name: Run tests
+        # test/env.setup.js supplies dummy Supabase/JWT values so the app can
+        # be imported without a real backend/.env (which is gitignored and
+        # won't exist in CI). No PDF-processing system binaries (qpdf,
+        # ghostscript, libreoffice, tesseract) are installed here since the
+        # current suite only covers auth validation, JWT, PDF-helper parsing,
+        # and the health endpoint - not the actual file-conversion routes.
+        run: npm test
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        # Reports only for now - there's existing lint debt (unused vars, a
+        # couple of real bugs) predating this workflow. Not blocking the
+        # build on it yet; tighten this once that debt is paid down.
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build

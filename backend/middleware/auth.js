@@ -1,5 +1,6 @@
 import { verifyAccessToken } from '../utils/jwt.js';
 import db from '../config/database.js';
+import logger from '../utils/logger.js';
 
 /**
  * Authentication middleware
@@ -55,7 +56,7 @@ export const authenticate = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
+    logger.error('Authentication error:', error);
     res.status(500).json({ error: 'Authentication failed' });
   }
 };
@@ -81,7 +82,7 @@ export const optionalAuth = async (req, res, next) => {
         }
       } catch (error) {
         // Ignore errors for optional auth
-        console.log('Optional auth failed:', error.message);
+        logger.info('Optional auth failed:', error.message);
       }
     }
     

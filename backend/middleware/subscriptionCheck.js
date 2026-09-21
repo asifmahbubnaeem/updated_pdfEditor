@@ -1,4 +1,5 @@
 import db from '../config/database.js';
+import logger from '../utils/logger.js';
 
 /**
  * Subscription tier limits
@@ -64,7 +65,7 @@ export const checkUsageLimit = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Usage limit check error:', error);
+    logger.error('Usage limit check error:', error);
     // Allow request to proceed if check fails (fail open)
     next();
   }
@@ -91,7 +92,7 @@ export const checkFileSizeLimit = (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('File size check error:', error);
+    logger.error('File size check error:', error);
     next();
   }
 };
@@ -115,7 +116,7 @@ export const requireFeature = (feature) => {
 
       next();
     } catch (error) {
-      console.error('Feature check error:', error);
+      logger.error('Feature check error:', error);
       res.status(500).json({ error: 'Feature check failed' });
     }
   };

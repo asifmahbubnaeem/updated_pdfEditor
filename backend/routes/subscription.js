@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/auth.js';
 import db, { supabase } from '../config/database.js';
 import { getUserUsageStats } from '../services/usageTrackingService.js';
 import { getTierLimits } from '../middleware/subscriptionCheck.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -37,7 +38,7 @@ router.get('/', authenticate, async (req, res, next) => {
       usage: usageStats,
     });
   } catch (error) {
-    console.error('Error getting subscription:', error);
+    logger.error('Error getting subscription:', error);
     next(error);
   }
 });
@@ -63,7 +64,7 @@ router.get('/history', authenticate, async (req, res, next) => {
       subscriptions: subscriptions || [],
     });
   } catch (error) {
-    console.error('Error getting subscription history:', error);
+    logger.error('Error getting subscription history:', error);
     next(error);
   }
 });
@@ -90,7 +91,7 @@ router.get('/transactions', authenticate, async (req, res, next) => {
       transactions: transactions || [],
     });
   } catch (error) {
-    console.error('Error getting transactions:', error);
+    logger.error('Error getting transactions:', error);
     next(error);
   }
 });

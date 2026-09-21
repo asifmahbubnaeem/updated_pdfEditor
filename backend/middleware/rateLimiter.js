@@ -1,4 +1,5 @@
 import redis from '../config/redis.js';
+import logger from '../utils/logger.js';
 
 /**
  * Tier-based rate limiting configuration
@@ -77,7 +78,7 @@ export const tieredRateLimiter = async (req, res, next) => {
     
     next();
   } catch (err) {
-    console.error('Rate limiter error:', err);
+    logger.error('Rate limiter error:', err);
     // Fail open - allow request if rate limiter fails
     next();
   }

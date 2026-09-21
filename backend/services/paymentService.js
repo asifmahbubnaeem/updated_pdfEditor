@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import db from '../config/database.js';
+import logger from '../utils/logger.js';
 
 dotenv.config();
 
@@ -76,7 +77,7 @@ export const createCheckoutSession = async (userId, tier, billingPeriod = 'month
       url: session.url,
     };
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    logger.error('Error creating checkout session:', error);
     throw error;
   }
 };
@@ -110,7 +111,7 @@ export const createPortalSession = async (userId) => {
       url: session.url,
     };
   } catch (error) {
-    console.error('Error creating portal session:', error);
+    logger.error('Error creating portal session:', error);
     throw error;
   }
 };
@@ -145,10 +146,10 @@ export const handleWebhook = async (event) => {
         break;
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        logger.info(`Unhandled event type: ${event.type}`);
     }
   } catch (error) {
-    console.error('Error handling webhook:', error);
+    logger.error('Error handling webhook:', error);
     throw error;
   }
 };
@@ -161,14 +162,14 @@ const handleCheckoutCompleted = async (session) => {
   const tier = session.metadata?.tier || 'pro';
 
   if (!userId) {
-    console.error('No userId in checkout session metadata');
+    logger.error('No userId in checkout session metadata');
     return;
   }
 
   // Get subscription from Stripe
   const subscriptionId = session.subscription;
   if (!subscriptionId) {
-    console.error('No subscription ID in checkout session');
+    logger.error('No subscription ID in checkout session');
     return;
   }
 
@@ -182,14 +183,14 @@ const handleCheckoutCompleted = async (session) => {
 const handleSubscriptionUpdate = async (stripeSubscription) => {
   const userId = stripeSubscription.metadata?.userId;
   if (!userId) {
-    console.error('No userId in subscription metadata');
+    logger.error('No userId in subscription metadata');
     return;
   }
 
   // Get existing subscription from database
   const existingSubscription = await db.getSubscriptionByUserId(userId);
   if (!existingSubscription) {
-    console.error('Subscription not found in database');
+    logger.error('Subscription not found in database');
     return;
   }
 
@@ -218,7 +219,7 @@ const handleSubscriptionUpdate = async (stripeSubscription) => {
 const handleSubscriptionDeleted = async (stripeSubscription) => {
   const userId = stripeSubscription.metadata?.userId;
   if (!userId) {
-    console.error('No userId in subscription metadata');
+    logger.error('No userId in subscription metadata');
     return;
   }
 
@@ -327,9 +328,9 @@ export const activateSubscription = async (userId, stripeSubscriptionId, tier) =
       subscription_status: 'active',
     });
 
-    console.log(`Subscription activated for user ${userId}, tier: ${tier}`);
+    logger.info(`Subscription activated for user ${userId}, tier: ${tier}`);
   } catch (error) {
-    console.error('Error activating subscription:', error);
+    logger.error('Error activating subscription:', error);
     throw error;
   }
 };
@@ -355,9 +356,9 @@ export const deactivateSubscription = async (userId) => {
       subscription_status: 'cancelled',
     });
 
-    console.log(`Subscription deactivated for user ${userId}`);
+    logger.info(`Subscription deactivated for user ${userId}`);
   } catch (error) {
-    console.error('Error deactivating subscription:', error);
+    logger.error('Error deactivating subscription:', error);
     throw error;
   }
 };
@@ -385,7 +386,7 @@ export const getStripeSubscription = async (stripeSubscriptionId) => {
   try {
     return await stripe.subscriptions.retrieve(stripeSubscriptionId);
   } catch (error) {
-    console.error('Error retrieving Stripe subscription:', error);
+    logger.error('Error retrieving Stripe subscription:', error);
     throw error;
   }
 };
@@ -417,7 +418,7 @@ export const cancelSubscription = async (userId, cancelAtPeriodEnd = true) => {
 
     return { success: true };
   } catch (error) {
-    console.error('Error canceling subscription:', error);
+    logger.error('Error canceling subscription:', error);
     throw error;
   }
 };

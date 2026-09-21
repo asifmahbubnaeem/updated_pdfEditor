@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import dotenv from 'dotenv';
+import logger from '../utils/logger.js';
 
 dotenv.config();
 
@@ -162,7 +163,7 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
     ttl: redisRestClient.ttl.bind(redisRestClient),
     del: redisRestClient.del.bind(redisRestClient),
   };
-  console.log('Using Upstash Redis REST API');
+  logger.info('Using Upstash Redis REST API');
 } else if (process.env.REDIS_URL) {
   // Use Redis URL (for Railway, Heroku, etc.)
   redis = new Redis(process.env.REDIS_URL, {
@@ -172,21 +173,21 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
     },
     maxRetriesPerRequest: 3,
   });
-  console.log('Using Redis URL connection');
+  logger.info('Using Redis URL connection');
 } else {
   // Fallback to local Redis
   redis = new Redis(redisConfig);
-  console.log('Using local Redis connection');
+  logger.info('Using local Redis connection');
 }
 
 // Error handling
 if (redis && typeof redis.on === 'function') {
   redis.on('error', (err) => {
-    console.error('Redis connection error:', err);
+    logger.error('Redis connection error:', err);
   });
 
   redis.on('connect', () => {
-    console.log('Redis connected successfully');
+    logger.info('Redis connected successfully');
   });
 }
 

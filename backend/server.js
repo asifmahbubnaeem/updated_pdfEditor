@@ -25,9 +25,12 @@ import { tieredRateLimiter } from './middleware/rateLimiter.js';
 import { checkUsageLimit, checkFileSizeLimit } from './middleware/subscriptionCheck.js';
 import { logUsage } from './services/usageTrackingService.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { startCleanupReaper } from './services/cleanupService.js';
+import { getDeletedPages, getNumericOrder, getPageNumbers, reConstructMap, computeColumnWidths } from './utils/pdfHelpers.js';
 import authRoutes from './routes/auth.js';
 import paymentRoutes from './routes/payment.js';
 import subscriptionRoutes from './routes/subscription.js';
+import logger from './utils/logger.js';
 
 const app = express();
 const VENV = process.env.VIRTUAL_ENV ? process.env.VIRTUAL_ENV.replace(/\/?$/, "/") : "";
@@ -86,7 +89,7 @@ if (useHttps) {
       cert: fs.readFileSync("server.cert"),
     };
   } catch (e) {
-    console.warn("USE_HTTPS set but server.key/cert missing, falling back to HTTP");
+    logger.warn("USE_HTTPS set but server.key/cert missing, falling back to HTTP");
     useHttps = false;
   }
 }
@@ -112,6 +115,21 @@ app.use(cors({
 // Body parsing
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Request logging - one structured line per request, with status and duration
+app.use((req, res, next) => {
+  const startedAt = Date.now();
+  res.on('finish', () => {
+    logger.info('request', {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+      ip: req.ip,
+    });
+  });
+  next();
+});
 
 // Optional auth middleware - attaches user if token provided
 app.use(optionalAuth);
@@ -165,7 +183,7 @@ app.post("/api/encrypt", upload.single("file"), authenticate, ...apiMiddleware, 
     ], async (err) => {
       if (err) {
         try { fs.unlinkSync(inputPath); } catch (_) {}
-        console.error("Encryption failed:", err);
+        logger.error("Encryption failed:", err);
         
         // Log failed usage
         if (userId) {
@@ -183,7 +201,7 @@ app.post("/api/encrypt", upload.single("file"), authenticate, ...apiMiddleware, 
       res.download(outputPath, "encrypted.pdf", (dlErr) => {
         try { fs.unlinkSync(inputPath); } catch (_) {}
         try { fs.unlinkSync(outputPath); } catch (_) {}
-        if (dlErr) console.error("Download error:", dlErr);
+        if (dlErr) logger.error("Download error:", dlErr);
       });
     });
   } catch (error) {
@@ -212,7 +230,7 @@ app.post("/api/decrypt", upload.single("file"), authenticate, ...apiMiddleware, 
     ], async (err) => {
       if (err) {
         try { fs.unlinkSync(inputPath); } catch (_) {}
-        console.error("Decryption failed:", err);
+        logger.error("Decryption failed:", err);
         
         // Log failed usage
         if (userId) {
@@ -230,38 +248,13 @@ app.post("/api/decrypt", upload.single("file"), authenticate, ...apiMiddleware, 
       res.download(outputPath, "decrypted.pdf", (dlErr) => {
         try { fs.unlinkSync(inputPath); } catch (_) {}
         try { fs.unlinkSync(outputPath); } catch (_) {}
-        if (dlErr) console.error("Download error:", dlErr);
+        if (dlErr) logger.error("Download error:", dlErr);
       });
     });
   } catch (error) {
     next(error);
   }
 });
-
-function getDeletedPages(deletedPagesAsStr){
-
-  let arr = deletedPagesAsStr.trim().split(',');
-  // const numArr = arr.map(Number);
-  const numArr=[];
-
-  arr.forEach(item => {
-    if(item.includes('-'))
-    {
-      const [startStr, endStr] = item.split('-');
-      const start = parseInt(startStr.trim(), 10);
-      const end = parseInt(endStr.trim(), 10);
-
-      for(let i=start; i<=end; i++)
-        numArr.push(i);
-    }
-    else{
-      numArr.push(parseInt(item.trim(),10));
-    }
-
-  });
-  return numArr;
-}
-
 
 app.get("/api/extract-images/download/:id", authenticate, (req, res) => {
   const zipPath = path.resolve(`extracted/${req.params.id}.zip`);
@@ -271,13 +264,13 @@ app.get("/api/extract-images/download/:id", authenticate, (req, res) => {
   }
 
   res.download(zipPath, "images.zip", (err) => {
-    if (err) console.error("Download error:", err);
+    if (err) logger.error("Download error:", err);
     try {
       fs.rmSync(`uploads/${req.params.id}`, { force: true });
       fs.rmSync(`extracted/${req.params.id}`, { recursive: true, force: true });
       fs.rmSync(zipPath, { force: true });
     } catch (cleanupErr) {
-      console.error("Cleanup error:", cleanupErr);
+      logger.error("Cleanup error:", cleanupErr);
     }
   });
 });
@@ -290,12 +283,12 @@ app.post("/api/convert-pdf-docx", upload.single("file"), authenticate, ...apiMid
 
   execFile(`${VENV}python3`, ['routes/convert_pdf_to_docx.py', inputPath, outputPath], (error, stdout, stderr) => {
     if (error) {
-      console.error(`Conversion error: ${stderr}`);
+      logger.error(`Conversion error: ${stderr}`);
       return res.status(500).json({ error: "Conversion failed" });
     }
 
     res.download(outputPath, "converted.docx", (err) => {
-      if (err) console.error("Download error:", err);
+      if (err) logger.error("Download error:", err);
 
       fs.unlinkSync(inputPath);
       fs.unlinkSync(outputPath); // uncomment if you don’t want to keep docx
@@ -314,13 +307,13 @@ app.get("/api/extract-tables/download/:id", authenticate, (req, res) => {
   }
 
   res.download(zipPath, "tables.zip", (err) => {
-    if (err) console.error("Download error:", err);
+    if (err) logger.error("Download error:", err);
     try {
       fs.rmSync(`uploads/${req.params.id}`, { force: true });
       fs.rmSync(`table-extracted/${req.params.id}`, { recursive: true, force: true });
       fs.rmSync(zipPath, { force: true });
     } catch (cleanupErr) {
-      console.error("Cleanup error:", cleanupErr);
+      logger.error("Cleanup error:", cleanupErr);
     }
   });
 });
@@ -333,13 +326,13 @@ app.get("/api/img-to-tbl-data/download/:id", authenticate, (req, res) => {
   }
 
   res.download(zipPath, "tables.zip", (err) => {
-    if (err) console.error("Download error:", err);
+    if (err) logger.error("Download error:", err);
     try {
       fs.rmSync(`uploads/${req.params.id}`, { force: true });
       fs.rmSync(`image-extracted/${req.params.id}`, { recursive: true, force: true });
       fs.rmSync(zipPath, { force: true });
     } catch (cleanupErr) {
-      console.error("Cleanup error:", cleanupErr);
+      logger.error("Cleanup error:", cleanupErr);
     }
   });
 });
@@ -359,8 +352,8 @@ app.post("/api/img-to-tbl-data", uploadImgage.single("file"), authenticate, ...a
     inputPath = safeInputPath;
 
     const outputDir = path.resolve("image-extracted", path.parse(req.file.filename).name);
-    console.log("inputPath = ",inputPath)
-    console.log("outputPath = ",outputDir)
+    logger.info("inputPath = ",inputPath)
+    logger.info("outputPath = ",outputDir)
 
     const convertionFormat = req.body.format;
     const outputPath = path.join("extracted-table", `${Date.now()}.${convertionFormat}`);
@@ -375,11 +368,11 @@ app.post("/api/img-to-tbl-data", uploadImgage.single("file"), authenticate, ...a
     const process = spawn(`${VENV}python3`, args);
 
     process.stdout.on('data', (data) => {
-      console.log(`Print statement from python script=${pythonScript} : ${data.toString()}`)
+      logger.info(`Print statement from python script=${pythonScript} : ${data.toString()}`)
     });
 
     process.stderr.on('data', (data) => {
-      console.log(`Error statement from python script=${pythonScript} : ${data.toString()}`);
+      logger.info(`Error statement from python script=${pythonScript} : ${data.toString()}`);
     });
 
     process.on("close", (code) => {
@@ -412,7 +405,7 @@ app.post("/api/img-to-tbl-data", uploadImgage.single("file"), authenticate, ...a
       });
     })
   }catch(err){
-      console.error("Table Extraction action error: ",err);
+      logger.error("Table Extraction action error: ",err);
       res.status(500).json({error: "Failed to extract table action."})
   }
 
@@ -427,13 +420,13 @@ app.get("/api/img-to-txt-data/download/:id", authenticate, (req, res) => {
   }
 
   res.download(zipPath, "text.zip", (err) => {
-    if (err) console.error("Download error:", err);
+    if (err) logger.error("Download error:", err);
     try {
       fs.rmSync(`uploads/${req.params.id}`, { force: true });
       fs.rmSync(`extracted/${req.params.id}`, { recursive: true, force: true });
       fs.rmSync(zipPath, { force: true });
     } catch (cleanupErr) {
-      console.error("Cleanup error:", cleanupErr);
+      logger.error("Cleanup error:", cleanupErr);
     }
   });
 });
@@ -453,8 +446,8 @@ app.post("/api/img-to-txt-data", uploadImgage.single("file"), authenticate, ...a
     inputPath = safeInputPath;
 
     const outputDir = path.resolve("extracted", path.parse(req.file.filename).name);
-    console.log("inputPath = ",inputPath)
-    console.log("outputPath = ",outputDir)
+    logger.info("inputPath = ",inputPath)
+    logger.info("outputPath = ",outputDir)
 
     const convertionFormat = req.body.format;
     // const outputPath = path.join("extracted", `${Date.now()}.${convertionFormat}`);
@@ -469,11 +462,11 @@ app.post("/api/img-to-txt-data", uploadImgage.single("file"), authenticate, ...a
     const process = spawn(`${VENV}python3`, args);
 
     process.stdout.on('data', (data) => {
-      console.log(`Print statement from python script=${pythonScript} : ${data.toString()}`)
+      logger.info(`Print statement from python script=${pythonScript} : ${data.toString()}`)
     });
 
     process.stderr.on('data', (data) => {
-      console.log(`Error statement from python script=${pythonScript} : ${data.toString()}`);
+      logger.info(`Error statement from python script=${pythonScript} : ${data.toString()}`);
     });
 
     process.on("close", (code) => {
@@ -506,7 +499,7 @@ app.post("/api/img-to-txt-data", uploadImgage.single("file"), authenticate, ...a
       });
     })
   }catch(err){
-      console.error("Text Extraction action error: ",err);
+      logger.error("Text Extraction action error: ",err);
       res.status(500).json({error: "Failed to extract text action."})
   }
 
@@ -537,11 +530,11 @@ app.post("/api/extract-tables", upload.single("file"), authenticate, ...apiMiddl
     const process = spawn(`${VENV}python3`, args);
 
     process.stdout.on('data', (data) => {
-      console.log(`Print statement from python script=${pythonScript} : ${data.toString()}`)
+      logger.info(`Print statement from python script=${pythonScript} : ${data.toString()}`)
     });
 
     process.stderr.on('data', (data) => {
-      console.log(`Error statement from python script=${pythonScript} : ${data.toString()}`);
+      logger.info(`Error statement from python script=${pythonScript} : ${data.toString()}`);
     });
 
     process.on("close", (code) => {
@@ -575,7 +568,7 @@ app.post("/api/extract-tables", upload.single("file"), authenticate, ...apiMiddl
     })
 
   }catch(err){
-      console.error("Table Extraction action error: ",err);
+      logger.error("Table Extraction action error: ",err);
       res.status(500).json({error: "Failed to extract table action."})
   }
 
@@ -616,7 +609,7 @@ function csvToPdf(inputCsv, outputPdf) {
           pdfDoc.end();
         });
       }catch(err){
-        console.error("Failed inside csvToPdf function: ",err);
+        logger.error("Failed inside csvToPdf function: ",err);
         res.status(500).json({error: "Failed inside csvToPdf function."})
       }
   }
@@ -636,26 +629,6 @@ function csvToArray(filePath) {
       .on("error", reject);
   });
 }
-
-function computeColumnWidths(tableData){
-    const colCount = tableData[0].length;
-  const colWidths = [];
-
-  for (let col = 0; col < colCount; col++) {
-    let maxLen = 0;
-    for (let row = 0; row < tableData.length; row++) {
-      const cell = String(tableData[row][col] || "");
-      if (cell.length > maxLen) maxLen = cell.length;
-    }
-
-    // Each char ~ 4 points wide, min 40, max 200
-    const width = Math.min(Math.max(maxLen * 4, 40), 200);
-    colWidths.push(width);
-  }
-
-  return colWidths;
-}
-
 
 const csvToPdf2 = (inputCsv, outputPdf) => {
   return new Promise(async (resolve, reject) => {
@@ -707,13 +680,13 @@ app.get("/api/csv-to-pdf/download/:id", authenticate, (req, res) => {
   }
 
   res.download(zipPath, "Files.zip", (err) => {
-    if (err) console.error("Download error:", err);
+    if (err) logger.error("Download error:", err);
     try {
       fs.rmSync(`uploads/${req.params.id}`, { force: true });
       fs.rmSync(`csv-to-pdf/${req.params.id}`, { recursive: true, force: true });
       fs.rmSync(zipPath, { force: true });
     } catch (cleanupErr) {
-      console.error("Cleanup error:", cleanupErr);
+      logger.error("Cleanup error:", cleanupErr);
     }
   });
 });
@@ -750,7 +723,7 @@ app.post("/api/csv-to-pdf", upload.single("file"), authenticate, ...apiMiddlewar
     });
 
   } catch (err) {
-    console.error("CSV to PDF conversion error: ", err);
+    logger.error("CSV to PDF conversion error: ", err);
     res.status(500).json({ error: "Failed to convert from CSV to PDF." });
   }
 });
@@ -807,7 +780,7 @@ app.post("/api/extract-images", upload.single("file"), authenticate, ...apiMiddl
     });
 
   }catch(err){
-      console.error("Image Extraction action error: ",err);
+      logger.error("Image Extraction action error: ",err);
       res.status(500).json({error: "Failed to extract image action."})
   } 
 
@@ -848,20 +821,14 @@ app.post("/api/compress-pdf", upload.single("file"), authenticate, ...apiMiddlew
           res.download(outputPath, "compressed.pdf", (dlErr) => {
               try { fs.unlinkSync(inputPath); } catch (_) {}
               try { fs.unlinkSync(outputPath); } catch (_) {}
-              if (dlErr) console.error("Download error:", dlErr);
+              if (dlErr) logger.error("Download error:", dlErr);
           });
       });
   } catch (error) {
-    console.error("Compress PDF error:", error);
+    logger.error("Compress PDF error:", error);
     res.status(500).json({ error: "Failed to compress PDF" });
   }
 });
-
-function getNumericOrder(pageOrder){
-  let arr = pageOrder.trim().split(',');
-  const numArr=arr.map(Number);
-  return numArr;
-}
 
 app.post("/api/delete-pages", uploadToDelete.single("file"), authenticate, ...apiMiddleware, async(req, res) =>{
 
@@ -877,12 +844,12 @@ app.post("/api/delete-pages", uploadToDelete.single("file"), authenticate, ...ap
 
       const existingPdfBytes = await req.file.buffer;//arrayBuffer();
       const deletedPages = getDeletedPages(req.body.deleted_page_no);
-      console.log(deletedPages);
+      logger.info(deletedPages);
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
       const newPdf = await PDFDocument.create();
 
       const pageCount = pdfDoc.getPageCount();
-      console.log(pageCount);
+      logger.info(pageCount);
 
       for(let i=0; i<pageCount; i++)
       {
@@ -899,32 +866,16 @@ app.post("/api/delete-pages", uploadToDelete.single("file"), authenticate, ...ap
       fs.writeFileSync(outputPath, pdfBytes);
 
       res.download(outputPath, outputPath, (err) => {
-            if(err)console.log("Error downloading updated (with deleted page) pdf file: ",outputPath);
-            // fs.unlinkSync(outputPath);
+            if(err)logger.info("Error downloading updated (with deleted page) pdf file: ",outputPath);
+            try { fs.unlinkSync(outputPath); } catch (_) {}
         });
-      console.log("downloaded updated (with deleted pages) pdf");
+      logger.info("downloaded updated (with deleted pages) pdf");
 
     }catch(err){
-      console.error("Detele action error: ",err);
+      logger.error("Detele action error: ",err);
       res.status(500).json({error: "Failed to perform delete action."})
     }
 });
-
-function getPageNumbers(pageNum){
-  if(pageNum.length==0)
-    return [];
-  const arr = pageNum.split(',');
-  return arr.map(Number);
-}
-
-
-function reConstructMap(strRotation){
-
-  const parsedArray = JSON.parse(strRotation);
-  const reconstructedMap = new Map(parsedArray);
-
-  return reconstructedMap;
-}
 
 app.post("/api/page-del-rotation", uploadToDelete.single("file"), authenticate, ...apiMiddleware, async (req, res) => {
 
@@ -968,14 +919,15 @@ app.post("/api/page-del-rotation", uploadToDelete.single("file"), authenticate, 
         fs.writeFileSync(outputPath, pdfBytes);
 
 
-        res.download(outputPath, outputPath, (err) => { 
+        res.download(outputPath, outputPath, (err) => {
             if(err)
-              console.log("Error downloading pdf file ", outputPath);
+              logger.info("Error downloading pdf file ", outputPath);
+            try { fs.unlinkSync(outputPath); } catch (_) {}
         });
-        console.log("Download successful.")
+        logger.info("Download successful.")
 
     }catch(err){
-      console.error("Rotation delete action error: ",err);
+      logger.error("Rotation delete action error: ",err);
       res.status(500).json({error: "Failed to process rotation/delete update."})
     }
 
@@ -1010,13 +962,13 @@ app.post("/api/page-rearrange", uploadToDelete.single("file"), authenticate, ...
       fs.writeFileSync(outputPath, pdfBytes);
 
     res.download(outputPath, outputPath, (err) => {
-          if(err)console.log("Error downloading reordered pdf file: ",outputPath);
+          if(err)logger.info("Error downloading reordered pdf file: ",outputPath);
           fs.unlinkSync(outputPath);
       });
-    console.log("downloaded reordered updated pdf");
+    logger.info("downloaded reordered updated pdf");
 
   }catch(err){
-    console.error("Re-arrange action error: ", err);
+    logger.error("Re-arrange action error: ", err);
     res.status(500).json({error: "Failed to re-arrange action"});
   }
 
@@ -1041,7 +993,7 @@ app.post("/api/convert-img", upload.single("file"), authenticate, ...apiMiddlewa
     const page = pdfDoc.addPage();
     const imageBytes = await fsp.readFile(req.file.path);
     let image;
-    console.log(inputPath)
+    logger.info(inputPath)
 
     if (req.body.fileType === 'jpg')
       image = await pdfDoc.embedJpg(imageBytes);
@@ -1055,8 +1007,8 @@ app.post("/api/convert-img", upload.single("file"), authenticate, ...apiMiddlewa
     }
     const imageDims = image.scale(scale_val);
 
-    // console.log("imageDim: w, h", imageDims.width, imageDims.height);
-    // console.log("page: w, h", page.getWidth(), page.getHeight());
+    // logger.info("imageDim: w, h", imageDims.width, imageDims.height);
+    // logger.info("page: w, h", page.getWidth(), page.getHeight());
 
     page.drawImage(image, {
         x: page.getWidth() / 2 - imageDims.width / 2,
@@ -1070,13 +1022,13 @@ app.post("/api/convert-img", upload.single("file"), authenticate, ...apiMiddlewa
     fs.writeFileSync(outputPath, pdfBytes);
 
     res.download(outputPath, outputPath, (err) => {
-      if(err)console.log("Error downloading img to pdf converted file: ",outputPath);
+      if(err)logger.info("Error downloading img to pdf converted file: ",outputPath);
       fs.unlinkSync(outputPath);
     });
-    console.log("downloaded image");
+    logger.info("downloaded image");
 
   }catch(err){
-    console.error("Image to Pdf conversion error: ",err);
+    logger.error("Image to Pdf conversion error: ",err);
     res.status(500).json({error: "Failed to convert from image to pdf."})
 
   }
@@ -1098,7 +1050,7 @@ app.post("/api/merge-pdfs", upload.array("pdfs"), authenticate, ...apiMiddleware
       const fileBuffer = fs.readFileSync(file.path);
       const pdf =  await PDFDocument.load(fileBuffer);
 
-      // console.log(pdf.getPageCount());
+      // logger.info(pdf.getPageCount());
       const pageIndices = Array.from({ length: pdf.getPageCount() }, (_, i) => i);
       const copiedPages = await mergedPdf.copyPages(pdf, pageIndices);
       await copiedPages.forEach((page) => mergedPdf.addPage(page));
@@ -1117,15 +1069,15 @@ app.post("/api/merge-pdfs", upload.array("pdfs"), authenticate, ...apiMiddleware
     req.files.forEach((file) => fs.unlinkSync(file.path));
 
     res.download(outputFile, "merged.pdf", (err) => {
-      if (err) console.error("Download error:", err);
+      if (err) logger.error("Download error:", err);
       // Delete merged file after sending
       fs.unlinkSync(outputFile);
     });
     // res.download(outputFile);
-    console.log("downloaded")
+    logger.info("downloaded")
 
   } catch (err) {
-    console.error("Merge error:", err);
+    logger.error("Merge error:", err);
     res.status(500).json({ error: "Failed to merge PDF files" });
   }
   
@@ -1150,13 +1102,13 @@ app.post("/api/convert", uploadDoc.single("file"), authenticate, ...apiMiddlewar
   // (the previous exec()-with-string-interpolation version was vulnerable to this).
   execFile('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, safeInputPath], (err) => {
     if (err) {
-      console.error("DOC to PDF conversion failed:", err);
+      logger.error("DOC to PDF conversion failed:", err);
       return res.status(500).json({ error: "Conversion failed" });
     }
 
     
     const files = fs.readdirSync(outputDir);
-      console.log("Files in converted/:", files);
+      logger.info("Files in converted/:", files);
 
       // Try to find the most recent file
       const pdfs = files.filter((f) => f.endsWith(".pdf"));
@@ -1172,11 +1124,11 @@ app.post("/api/convert", uploadDoc.single("file"), authenticate, ...apiMiddlewar
           .sort((a, b) => b.time - a.time)[0].name;
 
       const outputPath = path.join(outputDir, latestPdf);
-      console.log("Sending:", outputPath);
+      logger.info("Sending:", outputPath);
 
     res.download(outputPath, (downloadErr) => {
       if (downloadErr) {
-        console.error("Download error:", downloadErr);
+        logger.error("Download error:", downloadErr);
         res.status(500).json({ error: "Download failed" });
       }
 
@@ -1193,7 +1145,7 @@ app.post("/api/convert", uploadDoc.single("file"), authenticate, ...apiMiddlewar
         if (now - stats.mtimeMs > CLEANUP_TIME){
 
           fs.unlinkSync(f);
-          console.log(`Deleted expired file: ${path.basename(f)}`);
+          logger.info(`Deleted expired file: ${path.basename(f)}`);
         }
         else{
           validPdfs.push(f);
@@ -1242,15 +1194,27 @@ app.use(notFoundHandler);
 // Error handler (must be last)
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 3000;
-const server = useHttps && sslOptions
-  ? https.createServer(sslOptions, app)
-  : http.createServer(app);
-const protocol = useHttps && sslOptions ? "https" : "http";
-server.listen(PORT, () => {
-  console.log(`Backend running on ${protocol}://localhost:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Database: ${process.env.SUPABASE_URL ? 'Connected' : 'Not configured'}`);
-  console.log(`Redis: ${process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL ? 'Connected' : 'Not configured'}`);
-});
+// Only bind a port and start the background cleanup reaper when this file is
+// run directly (`node server.js`) - not when it's imported (e.g. by tests),
+// so test suites can exercise `app` with supertest-style requests without
+// opening a real socket or leaving an interval running.
+const isMainModule = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+
+if (isMainModule) {
+  const PORT = process.env.PORT || 3000;
+  const server = useHttps && sslOptions
+    ? https.createServer(sslOptions, app)
+    : http.createServer(app);
+  const protocol = useHttps && sslOptions ? "https" : "http";
+  server.listen(PORT, () => {
+    logger.info(`Backend running on ${protocol}://localhost:${PORT}`);
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`Database: ${process.env.SUPABASE_URL ? 'Connected' : 'Not configured'}`);
+    logger.info(`Redis: ${process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL ? 'Connected' : 'Not configured'}`);
+  });
+
+  startCleanupReaper();
+}
+
+export default app;
 

@@ -1,8 +1,10 @@
+import logger from '../utils/logger.js';
+
 /**
  * Centralized error handler middleware
  */
 export const errorHandler = (err, req, res, next) => {
-  console.error('Error:', {
+  logger.error('Error:', {
     message: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
     url: req.url,
