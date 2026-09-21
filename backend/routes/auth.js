@@ -7,6 +7,23 @@ import db from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 import { logUsage } from '../services/usageTrackingService.js';
 
+/** True if the error is a DB/network unreachable (timeout, DNS, connection refused). */
+function isDbUnreachable(error) {
+  const msg = (error?.message || '') + (error?.details || '') + (error?.code || '');
+  return (
+    /fetch failed|CONNECT_TIMEOUT|UND_ERR_CONNECT_TIMEOUT|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network/i.test(msg)
+  );
+}
+
+function sendDbUnreachable(res, logLabel, error) {
+  console.error(`${logLabel}:`, error?.message || error);
+  res.status(503).json({
+    error: 'Service temporarily unavailable',
+    code: 'SERVICE_UNAVAILABLE',
+    message: 'Database is unreachable. Check your connection and Supabase URL, then try again.',
+  });
+}
+
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const router = express.Router();
@@ -84,6 +101,9 @@ router.post(
         refreshToken: refreshToken,
       });
     } catch (error) {
+      if (isDbUnreachable(error)) {
+        return sendDbUnreachable(res, 'Registration error', error);
+      }
       console.error('Registration error:', error);
       res.status(500).json({
         error: 'Registration failed',
@@ -156,6 +176,9 @@ router.post(
         refreshToken: refreshToken,
       });
     } catch (error) {
+      if (isDbUnreachable(error)) {
+        return sendDbUnreachable(res, 'Login error', error);
+      }
       console.error('Login error:', error);
       res.status(500).json({
         error: 'Login failed',
@@ -176,6 +199,9 @@ router.get('/me', authenticate, async (req, res) => {
       user: userWithoutPassword,
     });
   } catch (error) {
+    if (isDbUnreachable(error)) {
+      return sendDbUnreachable(res, 'Get user error', error);
+    }
     console.error('Get user error:', error);
     res.status(500).json({
       error: 'Failed to get user',
@@ -223,6 +249,9 @@ router.post('/refresh', async (req, res) => {
       token: accessToken,
     });
   } catch (error) {
+    if (isDbUnreachable(error)) {
+      return sendDbUnreachable(res, 'Refresh token error', error);
+    }
     console.error('Refresh token error:', error);
     res.status(401).json({
       error: 'Invalid or expired refresh token',
@@ -335,6 +364,9 @@ router.post('/google', async (req, res) => {
       refreshToken: refreshToken,
     });
   } catch (error) {
+    if (isDbUnreachable(error)) {
+      return sendDbUnreachable(res, 'Google OAuth error', error);
+    }
     console.error('Google OAuth error:', error);
     res.status(500).json({
       error: 'Google authentication failed',
