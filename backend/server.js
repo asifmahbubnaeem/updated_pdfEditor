@@ -8,7 +8,7 @@ import path from "path";
 import multer from "multer";
 import cors from "cors";
 import helmet from "helmet";
-import { exec, spawn, execFile } from "child_process";
+import { spawn, execFile } from "child_process";
 import fs from "fs";
 import fsp from "fs/promises";
 import http from "http";
@@ -31,9 +31,17 @@ import subscriptionRoutes from './routes/subscription.js';
 
 const app = express();
 const VENV = process.env.VIRTUAL_ENV ? process.env.VIRTUAL_ENV.replace(/\/?$/, "/") : "";
-const upload = multer({ dest: "uploads/" });
+
+// Hard ceiling on upload size, applied before any per-tier size check runs.
+// Matches the largest subscription tier limit (see middleware/subscriptionCheck.js)
+// so tier enforcement still applies below this, but nobody can force the server
+// to buffer/write an unbounded file to disk (or memory, for memoryStorage uploads).
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // 500MB
+
+const upload = multer({ dest: "uploads/", limits: { fileSize: MAX_UPLOAD_BYTES } });
 const uploadDoc = multer({
   dest: "uploads/",
+  limits: { fileSize: MAX_UPLOAD_BYTES },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
       "application/msword", // .doc
@@ -49,11 +57,12 @@ const uploadDoc = multer({
 
 const uploadImgage = multer({
   dest: "uploads/",
+  limits: { fileSize: MAX_UPLOAD_BYTES },
   fileFilter : (req, file, cb) => {
     const mimeType = file.mimetype.toLowerCase();
     if (mimeType === 'image/jpeg' || mimeType === 'image/jpg' || mimeType === 'image/png') {
         // Accept the file
-        cb(null, true); 
+        cb(null, true);
     } else {
         // Reject the file and provide an error message
         cb(new Error('Invalid file type. Only JPG, JPEG, and PNG images are allowed.'), false);
@@ -64,7 +73,7 @@ const uploadImgage = multer({
 // app.use("/api", convertRoutes);
 
 const storage = multer.memoryStorage();
-const uploadToDelete = multer({storage: storage});
+const uploadToDelete = multer({storage: storage, limits: { fileSize: MAX_UPLOAD_BYTES }});
 
 const CLEANUP_TIME = 600000;
 
@@ -279,9 +288,7 @@ app.post("/api/convert-pdf-docx", upload.single("file"), authenticate, ...apiMid
   const outputPath = path.join("docx_converted", `${Date.now()}.docx`);
   fs.mkdirSync("docx_converted", { recursive: true });
 
-  const command = `${VENV}python3 routes/convert_pdf_to_docx.py "${inputPath}" "${outputPath}"`;
-
-  exec(command, (error, stdout, stderr) => {
+  execFile(`${VENV}python3`, ['routes/convert_pdf_to_docx.py', inputPath, outputPath], (error, stdout, stderr) => {
     if (error) {
       console.error(`Conversion error: ${stderr}`);
       return res.status(500).json({ error: "Conversion failed" });
@@ -365,8 +372,6 @@ app.post("/api/img-to-tbl-data", uploadImgage.single("file"), authenticate, ...a
     // const args = [pythonScript, inputPath, outputDir, convertionFormat];
     const args = ['routes/from_ai.py', inputPath, outputDir, convertionFormat];
 
-    const command = `${VENV}python3 routes/from_ai.py ${inputPath} ${outputDir} ${convertionFormat}`;
-    // console.log(command)
     const process = spawn(`${VENV}python3`, args);
 
     process.stdout.on('data', (data) => {
@@ -461,8 +466,6 @@ app.post("/api/img-to-txt-data", uploadImgage.single("file"), authenticate, ...a
     // const args = [pythonScript, inputPath, outputDir, convertionFormat];
     const args = ['routes/from_ai_text_extract.py', inputPath, outputDir, convertionFormat];
 
-    const command = `${VENV}python3 routes/from_ai_text_extract.py ${inputPath} ${outputDir} ${convertionFormat}`;
-    // console.log(command)
     const process = spawn(`${VENV}python3`, args);
 
     process.stdout.on('data', (data) => {
@@ -531,8 +534,6 @@ app.post("/api/extract-tables", upload.single("file"), authenticate, ...apiMiddl
     // const args = [pythonScript, inputPath, outputDir, convertionFormat];
     const args = ['routes/extract_tables_from_pdf.py', inputPath, outputDir, convertionFormat];
 
-    const command = `${VENV}python3 routes/extract_tables_from_pdf.py ${inputPath} ${outputDir} ${convertionFormat}`;
-    // console.log(command)
     const process = spawn(`${VENV}python3`, args);
 
     process.stdout.on('data', (data) => {
@@ -819,11 +820,25 @@ app.post("/api/compress-pdf", upload.single("file"), authenticate, ...apiMiddlew
     }
 
     const inputPath = req.file.path;
-    const compress_quality = req.body.compress_quality || 'ebook';
+    const ALLOWED_COMPRESS_QUALITIES = ['screen', 'ebook', 'printer', 'prepress', 'default'];
+    const compress_quality = ALLOWED_COMPRESS_QUALITIES.includes(req.body.compress_quality)
+      ? req.body.compress_quality
+      : 'ebook';
     const outputPath = `compressed_${Date.now()}.pdf`;
 
-    exec(`gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/${compress_quality} -dNOPAUSE -dQUIET -dBATCH -sOutputFile=${outputPath} ${inputPath}`,
-
+    // execFile with an argument array - no shell involved, so nothing here can
+    // be used for command injection even though inputPath/compress_quality
+    // originate from request data.
+    execFile('gs', [
+      '-sDEVICE=pdfwrite',
+      '-dCompatibilityLevel=1.4',
+      `-dPDFSETTINGS=/${compress_quality}`,
+      '-dNOPAUSE',
+      '-dQUIET',
+      '-dBATCH',
+      `-sOutputFile=${outputPath}`,
+      inputPath,
+    ],
       (err) => {
           if(err) {
             try { fs.unlinkSync(inputPath); } catch (_) {}
@@ -1119,15 +1134,21 @@ app.post("/api/merge-pdfs", upload.array("pdfs"), authenticate, ...apiMiddleware
 
 app.post("/api/convert", uploadDoc.single("file"), authenticate, ...apiMiddleware, async (req, res, next) => {
   const inputPath = req.file.path;
-  
-  const ext = path.extname(req.file.originalname) || ".docx";
+
+  // uploadDoc's fileFilter already restricts mimetype to .doc/.docx, but the
+  // extension itself comes from the client-supplied originalname, so it must
+  // still be validated before being used to build a filesystem path.
+  const rawExt = path.extname(req.file.originalname).toLowerCase();
+  const ext = ['.doc', '.docx'].includes(rawExt) ? rawExt : ".docx";
   const safeInputPath = inputPath + ext;
   fs.renameSync(inputPath, safeInputPath);
 
   const outputDir = path.join(process.cwd(), "converted");
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
-  // LibreOffice command
-  exec(`soffice --headless --convert-to pdf --outdir ${outputDir} "${safeInputPath}"`, (err) => {
+  // execFile with an argument array - avoids the shell entirely, so a crafted
+  // filename/extension can't be used to inject additional shell commands
+  // (the previous exec()-with-string-interpolation version was vulnerable to this).
+  execFile('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, safeInputPath], (err) => {
     if (err) {
       console.error("DOC to PDF conversion failed:", err);
       return res.status(500).json({ error: "Conversion failed" });
