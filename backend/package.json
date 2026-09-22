@@ -9,8 +9,6 @@
     "test": "node --import ./test/env.setup.js --test"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.490.0",
-    "@aws-sdk/s3-request-presigner": "^3.490.0",
     "@supabase/supabase-js": "^2.39.0",
     "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
