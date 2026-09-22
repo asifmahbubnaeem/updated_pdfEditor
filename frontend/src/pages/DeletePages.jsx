@@ -21,7 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { PDFDocument } from "pdf-lib"; // <== new import
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 
 // import HoverMenu from '../components/HoverMenu';
 import Page2 from '../components/Page';
@@ -41,10 +41,12 @@ function SortablePage({ id, pageNumber, onDelete, onEnlarge }) {
     transition,
   };
 
-  const pageContent = (<Page pageNumber={pageNumber} width={250} renderTextLayer={false} renderAnnotationLayer={false}/>);
-
   return (
     <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       className="group relative border rounded-lg shadow bg-white p-2 app-container"
     >
       <Page
@@ -87,7 +89,7 @@ function SortablePage({ id, pageNumber, onDelete, onEnlarge }) {
 
 export default function DeletePages() {
   const [file, setFile] = useState(null);
-  const [numPages, setNumPages] = useState(null);
+  const [, setNumPages] = useState(null);
   const [deletedPages, setDeletedPages] = useState([]);
   const [enlargedPage, setEnlargedPage] = useState(null);
   const [pagesOrder, setPagesOrder] = useState([]);
@@ -156,42 +158,6 @@ export default function DeletePages() {
     }
   };
 
-  // Save new PDF
-const handleSavePdf = async () => {
-  if (!file) return;
-
-  const existingPdfBytes = await file.arrayBuffer();
-  const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
-  // New empty PDF
-  const newPdf = await PDFDocument.create();
-
-  // Keep pages that are not deleted, in the new order
-  const newOrder = pagesOrder.filter((p) => !deletedPages.includes(p));
-
-  // Copy pages from old pdf into new one
-  const copiedPages = await newPdf.copyPages(
-    pdfDoc,
-    newOrder.map((n) => n - 1) // convert to 0-based index
-  );
-
-  copiedPages.forEach((page) => newPdf.addPage(page));
-
-  const pdfBytes = await newPdf.save();
-
-  // Trigger download
-  const blob = new Blob([pdfBytes], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "modified.pdf";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-};
-
-
 const handleSavePdf_backend = async () =>{
 
   const file = fileInputRef.current.files[0];
@@ -243,7 +209,7 @@ const handleSavePdf_backend = async () =>{
         {/* Save button */}
         {file &&(
           <button
-            onClick={handleSavePdf_backend}//{handleSavePdf}
+            onClick={handleSavePdf_backend}
             className="mb-6 px-4 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700"
           >
             💾 Save PDF

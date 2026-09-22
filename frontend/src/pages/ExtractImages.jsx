@@ -2,21 +2,18 @@ import React, { useState, useRef } from "react";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 // import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
-import { apiService, downloadBlob, handleApiError } from "../services/api";
+import { apiService, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 
 GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export default function ExtractImages() {
   const [pdfDoc, setPdfDoc] = useState(null);
   const [pageNum, setPageNum] = useState(1);
-  const [quality, setQuality] = useState("ebook");
   const [numPages, setNumPages] = useState(null);
-  const [password, setPassword] = useState("");
-  const [isEncrypting, setIsEncrypting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   const [status, setStatus] = useState("");
@@ -48,7 +45,7 @@ export default function ExtractImages() {
         setNumPages(pdf.numPages);
         setPageNum(1);
         renderPage(1, pdf);
-        compression_button.disabled = (false || cooldown>0);
+        compression_button.disabled = cooldown > 0;
       }catch(err){
         const canvas = canvasRef.current;
         canvas.width = 0;
@@ -56,7 +53,7 @@ export default function ExtractImages() {
         setPdfDoc(null);
         setNumPages(0);
         setPageNum(0);
-        compression_button.disabled =( true || cooldown>0);
+        compression_button.disabled = true;
         console.log("inside exception pdf load", err);
       }
 
@@ -92,45 +89,7 @@ export default function ExtractImages() {
   };
 
 
-  const generateUserId = () => {
-    if (!localStorage.getItem("userId")) {
-      localStorage.setItem("userId", crypto.randomUUID());
-    }
-    
-    const userId = localStorage.getItem("userId");
-
-    return userId;
-
-  }
-
   const handleRateLimit = createRateLimitHandler(setCooldown);
-
-
-  const handleEncrypt = async () => {
-    const file = fileInputRef.current.files[0];
-    if (!file) return alert("Upload PDF first!");
-    if (!password.trim()) return alert("Enter password!");
-
-    try {
-      setIsEncrypting(true);
-      const response = await apiService.encryptPdf(file, password);
-      
-      if (handleApiError(response, handleRateLimit)) {
-        return;
-      }
-
-      const filename = file.name.replace(/\.pdf$/i, "-protected.pdf");
-      downloadBlob(response.data, filename);
-    } catch (err) {
-      console.error(err);
-      if (handleApiError(err, handleRateLimit)) {
-        return;
-      }
-      alert(err.response?.data?.message || err.message || "Encryption failed");
-    } finally {
-      setIsEncrypting(false);
-    }
-  };
 
   const handleDownload = async () => {
     if (!downloadUrl) return;

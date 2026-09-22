@@ -4,7 +4,7 @@ import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 // import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 import { apiService, downloadBlob, handleApiError } from "../services/api.js";
 import { createRateLimitHandler } from "../utils/rateLimit.js";
 
@@ -36,15 +36,15 @@ export default function App() {
         setNumPages(pdf.numPages);
         setPageNum(1);
         renderPage(1, pdf);
-        document.getElementById("encrypt_btn").disabled = (false || cooldown>0);
-      }catch(err){
+        document.getElementById("encrypt_btn").disabled = cooldown > 0;
+      }catch{
         const canvas = canvasRef.current;
         canvas.width = 0;
         canvas.height = 0;
         setPdfDoc(null);
         setNumPages(0);
         setPageNum(0);
-        document.getElementById("encrypt_btn").disabled =( true || cooldown>0);
+        document.getElementById("encrypt_btn").disabled = true;
         console.log("inside exception pdf load");
       }
 
@@ -94,23 +94,6 @@ export default function App() {
       alert(err.response?.data?.error || err.message || "Encryption failed");
     } finally {
       setIsEncrypting(false);
-    }
-  };
-
-  const handleDecrypt = async () => {
-    const file = fileInputRef.current.files[0];
-    if (!file || !password) {
-      alert("Please upload a PDF and enter a password.");
-      return;
-    }
-
-    try {
-      const response = await apiService.decryptPdf(file, password);
-      downloadBlob(response.data, "decrypted.pdf");
-    } catch (err) {
-      console.error("Error:", err);
-      if (handleApiError(err, HandleRateLimit)) return;
-      alert("Error decrypting PDF (maybe wrong password?)");
     }
   };
 

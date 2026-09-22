@@ -1,16 +1,16 @@
 import React, { useState, useRef } from "react";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
+import { GlobalWorkerOptions } from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { apiService, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 
 GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export default function ExtractTextFromImage() {
-  const [image, setImage] = useState(null);
-  const [format, setFormat] = useState("txt");
+  const [, setImage] = useState(null);
+  const [format] = useState("txt");
   const [mimetype, setMimetype] = useState("");
   const [tableCount, setTableCount] = useState(0);
   

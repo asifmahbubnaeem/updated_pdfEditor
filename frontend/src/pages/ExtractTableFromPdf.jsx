@@ -4,7 +4,7 @@ import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { apiService, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 
 GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -41,7 +41,7 @@ export default function ExtractTable() {
         setNumPages(pdf.numPages);
         setPageNum(1);
         renderPage(1, pdf);
-        compression_button.disabled = (false || cooldown>0);
+        compression_button.disabled = cooldown > 0;
       }catch(err){
         const canvas = canvasRef.current;
         canvas.width = 0;
@@ -49,7 +49,7 @@ export default function ExtractTable() {
         setPdfDoc(null);
         setNumPages(0);
         setPageNum(0);
-        compression_button.disabled =( true || cooldown>0);
+        compression_button.disabled = true;
         console.log("inside exception pdf load", err);
       }
 

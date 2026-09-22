@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useSubscription } from '../context/SubscriptionContext.jsx';
 import { Link } from 'react-router-dom';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
-  const navigate = useNavigate();
   const { refreshSubscription } = useSubscription();
   const [loading, setLoading] = useState(true);
 

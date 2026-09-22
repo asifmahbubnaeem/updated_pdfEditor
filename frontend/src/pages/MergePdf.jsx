@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 import { apiService, downloadBlob, handleApiError } from "../services/api.js";
 import { createRateLimitHandler } from "../utils/rateLimit.js";
 
 export default function MergePdf() {
   const [files, setFiles] = useState([]);
-  const [downloadUrl, setDownloadUrl] = useState(null);
   const [cooldown, setCooldown] = useState(0);
 
   const HandleRateLimit = createRateLimitHandler(setCooldown);
@@ -14,11 +13,6 @@ export default function MergePdf() {
   // Add files without replacing the old ones
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
-    if(selectedFiles===null)
-    {
-      files = null;
-      return;
-    }
     const pdfFiles = selectedFiles.filter((file) =>
       file.name.toLowerCase().endsWith(".pdf")
     );

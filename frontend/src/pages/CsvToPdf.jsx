@@ -1,60 +1,24 @@
 import React, { useState, useRef } from "react";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { apiService, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
-
-GlobalWorkerOptions.workerSrc = pdfjsWorker;
+import NavBar from "../components/Navbar";
 
 export default function CsvToPdf() {
-  const [pdfDoc, setPdfDoc] = useState(null);
-  const [pageNum, setPageNum] = useState(1);
-  const [format, setFormat] = useState("csv");
-  const [numPages, setNumPages] = useState(null);
   const [cooldown, setCooldown] = useState(0);
 
   const [status, setStatus] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
 
   const fileInputRef = useRef(null);
-  const canvasRef = useRef(null);
 
-  const handleFileChange = async (event) => {
+  const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     setStatus("");
     setDownloadUrl("");
-
-    const convert_button = document.getElementById("btn_csv_to_pdf");
-    const reader = new FileReader();
-    reader.onload = async function () {
-      const typedArray = new Uint8Array(this.result);
-      
-      try{
-        const pdf = await getDocument({ data: typedArray }).promise;
-        setPdfDoc(pdf);
-        setNumPages(pdf.numPages);
-        setPageNum(1);
-        renderPage(1, pdf);
-        convert_button.disabled = (false || cooldown>0);
-      }catch(err){
-        const canvas = canvasRef.current;
-        canvas.width = 0;
-        canvas.height = 0;
-        setPdfDoc(null);
-        setNumPages(0);
-        setPageNum(0);
-        convert_button.disabled =( true || cooldown>0);
-        console.log("inside exception pdf load", err);
-      }
-
-    };
-    reader.readAsArrayBuffer(file);
   };
-
 
   const handleDownload = async () => {
     if (!downloadUrl) return;
@@ -67,35 +31,6 @@ export default function CsvToPdf() {
       alert('Download failed. Please try again.');
     }
   };
-
-
-  const renderPage = async (num, pdf = pdfDoc) => {
-    if (!pdf) return;
-    const page = await pdf.getPage(num);
-    const viewport = page.getViewport({ scale: 1 });
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: ctx, viewport }).promise;
-  };
-
-  const nextPage = () => {
-    if (pageNum < numPages) {
-      const newPage = pageNum + 1;
-      setPageNum(newPage);
-      renderPage(newPage);
-    }
-  };
-
-  const prevPage = () => {
-    if (pageNum > 1) {
-      const newPage = pageNum - 1;
-      setPageNum(newPage);
-      renderPage(newPage);
-    }
-  };
-
 
   const handleRateLimit = createRateLimitHandler(setCooldown);
 

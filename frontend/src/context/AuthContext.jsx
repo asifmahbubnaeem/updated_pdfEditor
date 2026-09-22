@@ -4,6 +4,7 @@ import api from '../services/api.js';
 
 const AuthContext = createContext(null);
 
+// eslint-disable-next-line react-refresh/only-export-components -- co-locating the hook with its Provider is intentional; only affects HMR granularity, not correctness
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }) => {
           const response = await api.get('/api/auth/me');
           setUser(response.data.user);
           setToken(storedToken);
-        } catch (error) {
+        } catch {
           // Token invalid, clear it
           localStorage.removeItem('authToken');
           localStorage.removeItem('refreshToken');
@@ -130,7 +131,7 @@ export const AuthProvider = ({ children }) => {
       setToken(newToken);
 
       return { success: true };
-    } catch (error) {
+    } catch {
       // Refresh failed, logout user
       logout();
       return { success: false };

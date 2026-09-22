@@ -4,7 +4,7 @@ import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 // import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 import { apiService, downloadBlob, handleApiError } from "../services/api.js";
 import { createRateLimitHandler } from "../utils/rateLimit.js";
 
@@ -15,8 +15,6 @@ export default function CompressPdf() {
   const [pageNum, setPageNum] = useState(1);
   const [quality, setQuality] = useState("ebook");
   const [numPages, setNumPages] = useState(null);
-  const [password, setPassword] = useState("");
-  const [isEncrypting, setIsEncrypting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   const fileInputRef = useRef(null);
@@ -39,7 +37,7 @@ export default function CompressPdf() {
         setNumPages(pdf.numPages);
         setPageNum(1);
         renderPage(1, pdf);
-        compression_button.disabled = (false || cooldown>0);
+        compression_button.disabled = cooldown > 0;
       }catch(err){
         const canvas = canvasRef.current;
         canvas.width = 0;
@@ -47,7 +45,7 @@ export default function CompressPdf() {
         setPdfDoc(null);
         setNumPages(0);
         setPageNum(0);
-        compression_button.disabled =( true || cooldown>0);
+        compression_button.disabled = true;
         console.log("inside exception pdf load", err);
       }
 
@@ -79,24 +77,6 @@ export default function CompressPdf() {
       const newPage = pageNum - 1;
       setPageNum(newPage);
       renderPage(newPage);
-    }
-  };
-
-  const handleEncrypt = async () => {
-    const file = fileInputRef.current.files[0];
-    if (!file) return alert("Upload PDF first!");
-    if (!password.trim()) return alert("Enter password!");
-
-    try {
-      setIsEncrypting(true);
-      const response = await apiService.encryptPdf(file, password);
-      downloadBlob(response.data, file.name.replace(/\.pdf$/i, "-protected.pdf"));
-    } catch (err) {
-      console.error(err);
-      if (handleApiError(err, HandleRateLimit)) return;
-      alert(err.response?.data?.error || err.message || "Encryption failed");
-    } finally {
-      setIsEncrypting(false);
     }
   };
 

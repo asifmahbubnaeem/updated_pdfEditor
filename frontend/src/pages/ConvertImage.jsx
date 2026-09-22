@@ -1,12 +1,10 @@
 import React, { useState, useRef} from "react";
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 import { apiService, downloadBlob, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 
-export default function ConvertImage(argument) {
-	// body...
-	const [file, setFile] = useState(null);
+export default function ConvertImage() {
 	const [cooldown, setCooldown] = useState(0);
 	const fileInputRef = useRef(null);
 
@@ -99,10 +97,6 @@ export default function ConvertImage(argument) {
   			alert(err.response?.data?.message || err.message || "Image to PDF conversion failed");
   		}
 	};
-
-	const getPdfPreviewUrl = (file) => {
-    return URL.createObjectURL(file);
-  };
 
 	return (
 		<PageLayout>

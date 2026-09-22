@@ -3,14 +3,14 @@ import React, { useState, useRef } from "react";
 import { Document, Page } from "react-pdf";
 import { PDFDocument } from "pdf-lib";
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 import { apiService, downloadBlob, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 
 const PdfEditor = () => {
   const [pdfFile, setPdfFile] = useState(null);
   const [pages, setPages] = useState([]);
-  const [numPages, setNumPages] = useState(null);
+  const [, setNumPages] = useState(null);
   const fileInputRef = useRef(null);
   const [cooldown, setCooldown] = useState(0);
   const deleted_page_numbers = [];
@@ -62,31 +62,6 @@ const PdfEditor = () => {
           : p
       )
     );
-  };
-
-  const handleSavePdf = async () => {
-    if (!pdfFile) return;
-
-    const existingPdfBytes = await fetch(pdfFile).then((res) =>
-      res.arrayBuffer()
-    );
-    const srcDoc = await PDFDocument.load(existingPdfBytes);
-    const newDoc = await PDFDocument.create();
-
-    for (let i = 0; i < pages.length; i++) {
-      if (!pages[i].deleted) {
-        const [copiedPage] = await newDoc.copyPages(srcDoc, [i]);
-        copiedPage.setRotation(degrees(pages[i].rotation));
-        newDoc.addPage(copiedPage);
-      }
-    }
-
-    const pdfBytes = await newDoc.save();
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "reversed.pdf";
-    link.click();
   };
 
 function getPageInfo(){

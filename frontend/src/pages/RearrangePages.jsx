@@ -19,7 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { PDFDocument } from "pdf-lib"; // <== new import
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 
 // import HoverMenu from '../components/HoverMenu';
 import Page2 from '../components/Page';
@@ -30,7 +30,7 @@ import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 // Sortable item
-function SortablePage({ id, pageNumber, onDelete, onEnlarge }) {
+function SortablePage({ id, pageNumber }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
 
@@ -92,7 +92,7 @@ function SortablePage({ id, pageNumber, onDelete, onEnlarge }) {
 
 export default function DeletePages() {
   const [file, setFile] = useState(null);
-  const [numPages, setNumPages] = useState(null);
+  const [, setNumPages] = useState(null);
   const [deletedPages, setDeletedPages] = useState([]);
   const [enlargedPage, setEnlargedPage] = useState(null);
   const [pagesOrder, setPagesOrder] = useState([]);

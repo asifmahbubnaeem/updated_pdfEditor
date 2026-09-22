@@ -2,7 +2,7 @@ import { useSubscription } from '../context/SubscriptionContext.jsx';
 import { Link } from 'react-router-dom';
 
 export default function UsageLimitWarning() {
-  const { tier, usage, limits, dailyUsagePercent, canPerformOperation } = useSubscription();
+  const { tier, usage, limits, canPerformOperation } = useSubscription();
 
   // Don't show warning for Pro/Enterprise users
   if (tier === 'pro' || tier === 'enterprise') {

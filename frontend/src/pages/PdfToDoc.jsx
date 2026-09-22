@@ -2,11 +2,11 @@ import React, { useState, useRef } from "react";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 // import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
-import { apiService, downloadBlob, handleApiError } from "../services/api";
+import { apiService, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 
 GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -17,8 +17,6 @@ export default function PdfToDocConvertion() {
   const [cooldown, setCooldown] = useState(0);
 
   const [status, setStatus] = useState("");
-  const [imageCount, setImageCount] = useState(0);
-  const [downloadUrl, setDownloadUrl] = useState("");
   // const [file, setFile] = useState(null);
 
   const fileInputRef = useRef(null);
@@ -31,8 +29,6 @@ export default function PdfToDocConvertion() {
     if (!file) return;
     // setFile(event.target.files[0]);
     setStatus("");
-    setImageCount(0);
-    setDownloadUrl("");
 
     const compression_button = document.getElementById("btn_cmpr");
     const reader = new FileReader();
@@ -45,7 +41,7 @@ export default function PdfToDocConvertion() {
         setNumPages(pdf.numPages);
         setPageNum(1);
         renderPage(1, pdf);
-        compression_button.disabled = (false || cooldown>0);
+        compression_button.disabled = cooldown > 0;
       }catch(err){
         const canvas = canvasRef.current;
         canvas.width = 0;
@@ -53,7 +49,7 @@ export default function PdfToDocConvertion() {
         setPdfDoc(null);
         setNumPages(0);
         setPageNum(0);
-        compression_button.disabled =( true || cooldown>0);
+        compression_button.disabled = true;
         console.log("inside exception pdf load", err);
       }
 
@@ -91,18 +87,6 @@ export default function PdfToDocConvertion() {
 
   const handleRateLimit = createRateLimitHandler(setCooldown);
 
-
-  const handleDownload = async () => {
-    if (!downloadUrl) return;
-    try {
-      const filename = 'converted.docx';
-      await apiService.downloadFile(downloadUrl, filename);
-      setImageCount(0);
-    } catch (error) {
-      console.error('Download failed:', error);
-      alert('Download failed. Please try again.');
-    }
-  };
 
   const handlePdfToDocx = async () => {
     const file = fileInputRef.current.files[0];

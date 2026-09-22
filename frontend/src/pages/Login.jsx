@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -36,11 +36,31 @@ export default function Login() {
     }
   }, [isAuthenticated, navigate, searchParams]);
 
+  const handleGoogleSignIn = useCallback(async (response) => {
+    try {
+      setError('');
+      setLoading(true);
+
+      const result = await loginWithGoogle(response.credential);
+
+      if (result.success) {
+        const redirect = searchParams.get('redirect') || '/';
+        navigate(redirect, { replace: true });
+      } else {
+        setError(result.error || 'Google sign-in failed');
+        setLoading(false);
+      }
+    } catch {
+      setError('Google sign-in failed');
+      setLoading(false);
+    }
+  }, [loginWithGoogle, navigate, searchParams]);
+
   // Initialize Google Sign-In
   useEffect(() => {
     const initGoogleSignIn = async () => {
       await loadGoogleScript();
-      
+
       if (window.google && googleButtonRef.current) {
         window.google.accounts.id.initialize({
           client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
@@ -60,27 +80,7 @@ export default function Login() {
     };
 
     initGoogleSignIn();
-  }, []);
-
-  const handleGoogleSignIn = async (response) => {
-    try {
-      setError('');
-      setLoading(true);
-      
-      const result = await loginWithGoogle(response.credential);
-      
-      if (result.success) {
-        const redirect = searchParams.get('redirect') || '/';
-        navigate(redirect, { replace: true });
-      } else {
-        setError(result.error || 'Google sign-in failed');
-        setLoading(false);
-      }
-    } catch (err) {
-      setError('Google sign-in failed');
-      setLoading(false);
-    }
-  };
+  }, [handleGoogleSignIn]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

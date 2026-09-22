@@ -4,6 +4,7 @@ import api from '../services/api.js';
 
 const SubscriptionContext = createContext(null);
 
+// eslint-disable-next-line react-refresh/only-export-components -- co-locating the hook with its Provider is intentional; only affects HMR granularity, not correctness
 export const useSubscription = () => {
   const context = useContext(SubscriptionContext);
   if (!context) {

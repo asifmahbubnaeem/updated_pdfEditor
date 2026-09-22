@@ -1,84 +1,14 @@
 import React, { useState, useRef } from "react";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-// import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
 import { apiService, downloadBlob, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
-
-GlobalWorkerOptions.workerSrc = pdfjsWorker;
+import NavBar from "../components/Navbar";
 
 export default function App() {
-  const [pdfDoc, setPdfDoc] = useState(null);
-  const [pageNum, setPageNum] = useState(1);
-  const [numPages, setNumPages] = useState(null);
-  const [password, setPassword] = useState("");
-  const [isEncrypting, setIsEncrypting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   const fileInputRef = useRef(null);
-  const canvasRef = useRef(null);
-
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async function () {
-      const typedArray = new Uint8Array(this.result);
-      
-      try{
-        const pdf = await getDocument({ data: typedArray }).promise;
-        setPdfDoc(pdf);
-        setNumPages(pdf.numPages);
-        setPageNum(1);
-        renderPage(1, pdf);
-        document.getElementById("encrypt_btn").disabled = false;
-        document.getElementById("decrypt_btn").disabled = true;
-      }catch(err){
-        const canvas = canvasRef.current;
-        canvas.width = 0;
-        canvas.height = 0;
-        setPdfDoc(null);
-        setNumPages(0);
-        setPageNum(0);
-        document.getElementById("encrypt_btn").disabled = true;
-        document.getElementById("decrypt_btn").disabled = false;
-        console.log("inside exception pdf load");
-      }
-
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  const renderPage = async (num, pdf = pdfDoc) => {
-    if (!pdf) return;
-    const page = await pdf.getPage(num);
-    const viewport = page.getViewport({ scale: 1.5 });
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: ctx, viewport }).promise;
-  };
-
-  const nextPage = () => {
-    if (pageNum < numPages) {
-      const newPage = pageNum + 1;
-      setPageNum(newPage);
-      renderPage(newPage);
-    }
-  };
-
-  const prevPage = () => {
-    if (pageNum > 1) {
-      const newPage = pageNum - 1;
-      setPageNum(newPage);
-      renderPage(newPage);
-    }
-  };
 
   const handleRateLimit = createRateLimitHandler(setCooldown);
 
@@ -120,7 +50,6 @@ export default function App() {
           type="file"
           accept=".doc,.docx"
           ref={fileInputRef}
-          onChange={handleFileChange}
           className="mb-4"/>
         <button id="encrypt_btn"
                   style={{backgroundColor: "gray", border: "1px solid black", fontSize: "16px"}}

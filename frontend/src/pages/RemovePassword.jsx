@@ -4,7 +4,7 @@ import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 // import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 import { apiService } from "../services/api.js";
 
 GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -14,7 +14,6 @@ export default function RemovePassword() {
   const [pageNum, setPageNum] = useState(1);
   const [numPages, setNumPages] = useState(null);
   const [password, setPassword] = useState("");
-  const [isEncrypting, setIsEncrypting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   const fileInputRef = useRef(null);
@@ -36,7 +35,7 @@ export default function RemovePassword() {
         renderPage(1, pdf);
         document.getElementById("encrypt_btn").disabled = false;
         document.getElementById("decrypt_btn").disabled = true;
-      }catch(err){
+      }catch{
         const canvas = canvasRef.current;
         canvas.width = 0;
         canvas.height = 0;
@@ -80,17 +79,6 @@ export default function RemovePassword() {
   };
 
 
-  const generateUserId = () => {
-    if (!localStorage.getItem("userId")) {
-      localStorage.setItem("userId", crypto.randomUUID());
-    }
-    
-    const userId = localStorage.getItem("userId");
-
-    return userId;
-
-  }
-
   const HandleRateLimit = (data) =>{
           // alert(`Rate limit exceeded. Please wait ${data.retryAfter} seconds.`);
       setCooldown(data.retryAfter);
@@ -104,35 +92,6 @@ export default function RemovePassword() {
       }, 1000);
   }
 
-
-  const handleEncrypt = async () => {
-    const file = fileInputRef.current.files[0];
-    if (!file) return alert("Upload PDF first!");
-    if (!password.trim()) return alert("Enter password!");
-
-    try {
-      setIsEncrypting(true);
-      const response = await apiService.encryptPdf(file, password);
-
-      // apiService returns blob data directly
-      const blob = response.data;
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = file.name.replace(/\.pdf$/i, "-protected.pdf");
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      if (err.response?.status === 429) {
-        HandleRateLimit(err.response.data);
-        return;
-      }
-      alert(err.response?.data?.error || err.message || "Encryption failed");
-    } finally {
-      setIsEncrypting(false);
-    }
-  };
 
   const handleDecrypt = async () => {
     const file = fileInputRef.current.files[0];
