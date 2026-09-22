@@ -278,10 +278,55 @@ export const db = {
       .delete()
       .lt('expires_at', now)
       .select();
-    
+
     if (error) throw error;
     return data;
-  }
+  },
+
+  // Refresh token tracking (for revocation/rotation - see database/migration_refresh_tokens.sql)
+  async createRefreshToken({ jti, userId, expiresAt }) {
+    const { data, error } = await supabase
+      .from('refresh_tokens')
+      .insert({ jti, user_id: userId, expires_at: expiresAt })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async getRefreshToken(jti) {
+    const { data, error } = await supabase
+      .from('refresh_tokens')
+      .select('*')
+      .eq('jti', jti)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
+  },
+
+  async revokeRefreshToken(jti) {
+    const { error } = await supabase
+      .from('refresh_tokens')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('jti', jti);
+
+    if (error) throw error;
+  },
+
+  async revokeAllRefreshTokensForUser(userId) {
+    const { error } = await supabase
+      .from('refresh_tokens')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .is('revoked_at', null);
+
+    if (error) throw error;
+  },
 };
 
 export default db;

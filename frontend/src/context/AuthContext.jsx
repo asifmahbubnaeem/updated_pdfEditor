@@ -56,9 +56,10 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
+      const msg = error.response?.data?.message || error.response?.data?.error;
       return {
         success: false,
-        error: error.response?.data?.error || 'Login failed',
+        error: msg || 'Login failed',
       };
     }
   };
@@ -78,9 +79,10 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
+      const msg = error.response?.data?.message || error.response?.data?.error;
       return {
         success: false,
-        error: error.response?.data?.error || 'Registration failed',
+        error: msg || 'Registration failed',
         errors: error.response?.data?.errors,
       };
     }
@@ -89,7 +91,11 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       if (token) {
-        await api.post('/api/auth/logout');
+        // Sending the refresh token lets the backend revoke it server-side,
+        // so it can't be reused after logout (it otherwise stays valid
+        // until its own 7-day expiry - see backend/routes/auth.js).
+        const refreshTokenValue = localStorage.getItem('refreshToken');
+        await api.post('/api/auth/logout', refreshTokenValue ? { refreshToken: refreshTokenValue } : {});
       }
     } catch (error) {
       console.error('Logout error:', error);
@@ -113,10 +119,16 @@ export const AuthProvider = ({ children }) => {
         refreshToken: refreshTokenValue,
       });
 
-      const { token: newToken } = response.data;
+      // The backend rotates refresh tokens on every use (the old one is
+      // revoked server-side), so the new one must replace the stored value
+      // or the next refresh will be rejected as revoked.
+      const { token: newToken, refreshToken: newRefreshToken } = response.data;
       localStorage.setItem('authToken', newToken);
+      if (newRefreshToken) {
+        localStorage.setItem('refreshToken', newRefreshToken);
+      }
       setToken(newToken);
-      
+
       return { success: true };
     } catch (error) {
       // Refresh failed, logout user
@@ -140,9 +152,10 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
+      const msg = error.response?.data?.message || error.response?.data?.error;
       return {
         success: false,
-        error: error.response?.data?.error || 'Google login failed',
+        error: msg || 'Google login failed',
       };
     }
   };

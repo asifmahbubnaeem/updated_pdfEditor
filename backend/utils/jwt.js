@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 import logger from './logger.js';
 
 dotenv.config();
@@ -26,12 +27,16 @@ export const generateAccessToken = (payload) => {
 
 /**
  * Generate refresh token
+ * Embeds a random `jti` (JWT ID) claim so the caller can persist it
+ * server-side and later revoke/rotate this specific token - a plain
+ * signed JWT alone can't be invalidated before it expires.
  * @param {Object} payload - Token payload
  * @returns {string} JWT refresh token
  */
 export const generateRefreshToken = (payload) => {
   return jwt.sign(payload, JWT_REFRESH_SECRET, {
     expiresIn: JWT_REFRESH_EXPIRES_IN,
+    jwtid: crypto.randomUUID(),
   });
 };
 

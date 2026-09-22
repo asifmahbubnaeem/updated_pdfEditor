@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
 import { OAuth2Client } from 'google-auth-library';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, decodeToken } from '../utils/jwt.js';
 import db from '../config/database.js';
 import { authenticate } from '../middleware/auth.js';
 import { logUsage } from '../services/usageTrackingService.js';
@@ -13,6 +13,26 @@ function isDbUnreachable(error) {
   return (
     /fetch failed|CONNECT_TIMEOUT|UND_ERR_CONNECT_TIMEOUT|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|network/i.test(msg)
   );
+}
+
+/**
+ * Issues a fresh access+refresh token pair for a user and persists the
+ * refresh token's jti (see database/migration_refresh_tokens.sql) so it can
+ * later be revoked or rotated - a bare signed JWT alone can't be.
+ */
+async function issueTokenPair(user) {
+  const tokenPayload = { userId: user.id, email: user.email };
+  const accessToken = generateAccessToken(tokenPayload);
+  const refreshToken = generateRefreshToken(tokenPayload);
+
+  const { jti, exp } = decodeToken(refreshToken);
+  await db.createRefreshToken({
+    jti,
+    userId: user.id,
+    expiresAt: new Date(exp * 1000).toISOString(),
+  });
+
+  return { accessToken, refreshToken };
 }
 
 function sendDbUnreachable(res, logLabel, error) {
@@ -37,8 +57,8 @@ router.post(
   [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
     body('password')
-      .isLength({ min: 6 })
-      .withMessage('Password must be at least 6 characters')
+      .isLength({ min: 8 })
+      .withMessage('Password must be at least 8 characters')
       .matches(/[A-Za-z]/)
       .withMessage('Password must contain at least one letter')
       .matches(/[0-9]/)
@@ -83,13 +103,7 @@ router.post(
       await db.getOrCreateQuota(user.id);
 
       // Generate tokens
-      const tokenPayload = {
-        userId: user.id,
-        email: user.email,
-      };
-
-      const accessToken = generateAccessToken(tokenPayload);
-      const refreshToken = generateRefreshToken(tokenPayload);
+      const { accessToken, refreshToken } = await issueTokenPair(user);
 
       // Remove password hash from response
       const { password_hash, ...userWithoutPassword } = user;
@@ -155,13 +169,7 @@ router.post(
       }
 
       // Generate tokens
-      const tokenPayload = {
-        userId: user.id,
-        email: user.email,
-      };
-
-      const accessToken = generateAccessToken(tokenPayload);
-      const refreshToken = generateRefreshToken(tokenPayload);
+      const { accessToken, refreshToken } = await issueTokenPair(user);
 
       // Log login (optional)
       await logUsage(user.id, 'login', 0, true, req);
@@ -225,8 +233,18 @@ router.post('/refresh', async (req, res) => {
       });
     }
 
-    // Verify refresh token
+    // Verify signature and expiry
     const decoded = verifyRefreshToken(refreshToken);
+
+    // Check server-side revocation state - this is what actually lets
+    // logout/rotation invalidate a refresh token before its JWT expiry.
+    const tokenRecord = await db.getRefreshToken(decoded.jti);
+    if (!tokenRecord || tokenRecord.revoked_at) {
+      return res.status(401).json({
+        error: 'Refresh token has been revoked',
+        code: 'REFRESH_TOKEN_REVOKED',
+      });
+    }
 
     // Get user
     const user = await db.getUserById(decoded.userId);
@@ -237,16 +255,15 @@ router.post('/refresh', async (req, res) => {
       });
     }
 
-    // Generate new access token
-    const tokenPayload = {
-      userId: user.id,
-      email: user.email,
-    };
-
-    const accessToken = generateAccessToken(tokenPayload);
+    // Rotate: this refresh token is single-use - revoke it and issue a
+    // fresh pair, so a leaked-then-reused token is a detectable/stoppable
+    // event rather than silently valid for its full 7-day lifetime.
+    await db.revokeRefreshToken(decoded.jti);
+    const { accessToken, refreshToken: newRefreshToken } = await issueTokenPair(user);
 
     res.json({
       token: accessToken,
+      refreshToken: newRefreshToken,
     });
   } catch (error) {
     if (isDbUnreachable(error)) {
@@ -266,8 +283,20 @@ router.post('/refresh', async (req, res) => {
  */
 router.post('/logout', authenticate, async (req, res) => {
   try {
-    // In a more advanced implementation, you might want to blacklist the token
-    // For now, we just return success
+    // Revoke the refresh token so it can't be used again even though the
+    // (still short-lived) access token stays valid until it naturally
+    // expires. Best-effort: an already-invalid/expired/missing refresh
+    // token shouldn't block logout itself.
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+      try {
+        const decoded = verifyRefreshToken(refreshToken);
+        await db.revokeRefreshToken(decoded.jti);
+      } catch (revokeError) {
+        console.error('Logout: failed to revoke refresh token:', revokeError?.message || revokeError);
+      }
+    }
+
     res.json({
       message: 'Logout successful',
     });
@@ -343,13 +372,7 @@ router.post('/google', async (req, res) => {
     }
 
     // Generate tokens
-    const tokenPayload = {
-      userId: user.id,
-      email: user.email,
-    };
-
-    const accessToken = generateAccessToken(tokenPayload);
-    const refreshToken = generateRefreshToken(tokenPayload);
+    const { accessToken, refreshToken } = await issueTokenPair(user);
 
     // Log login
     await logUsage(user.id, 'login', 0, true, req);

@@ -39,6 +39,18 @@ describe('refresh tokens', () => {
     const accessToken = generateAccessToken(payload);
     assert.throws(() => verifyRefreshToken(accessToken), /Invalid refresh token/);
   });
+
+  test('carries a jti claim usable for server-side revocation tracking', () => {
+    const decoded = verifyRefreshToken(generateRefreshToken(payload));
+    assert.equal(typeof decoded.jti, 'string');
+    assert.ok(decoded.jti.length > 0);
+  });
+
+  test('two tokens for the same payload get different jti values', () => {
+    const first = verifyRefreshToken(generateRefreshToken(payload));
+    const second = verifyRefreshToken(generateRefreshToken(payload));
+    assert.notEqual(first.jti, second.jti);
+  });
 });
 
 describe('decodeToken', () => {

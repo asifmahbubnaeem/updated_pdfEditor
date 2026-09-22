@@ -44,8 +44,8 @@ describe('POST /api/auth/register validation', () => {
     assert.equal(body.error, 'Validation failed');
   });
 
-  test('rejects a password shorter than 6 characters', async () => {
-    const res = await postJson('/api/auth/register', { email: 'user@example.com', password: 'a1' });
+  test('rejects a password shorter than 8 characters', async () => {
+    const res = await postJson('/api/auth/register', { email: 'user@example.com', password: 'ab12345' });
     assert.equal(res.status, 400);
   });
 });
