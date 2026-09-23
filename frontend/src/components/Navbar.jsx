@@ -22,7 +22,7 @@ export default function Navbar() {
                 }`
               }
             >
-              Home
+              Home_   
             </NavLink>
 
             {isAuthenticated && (
@@ -36,7 +36,7 @@ export default function Navbar() {
                   }`
                 }
               >
-                   Pricing
+                _Pricing_
               </NavLink>
             )}
           </div>
@@ -74,7 +74,7 @@ export default function Navbar() {
                     }`
                   }
                 >
-                  Login
+                  Login_
                 </NavLink>
                 <NavLink
                   to="/register"
