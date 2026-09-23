@@ -57,11 +57,7 @@ jobs:
         run: npm ci
 
       - name: Lint
-        # Reports only for now - there's existing lint debt (unused vars, a
-        # couple of real bugs) predating this workflow. Not blocking the
-        # build on it yet; tighten this once that debt is paid down.
         run: npm run lint
-        continue-on-error: true
 
       - name: Build
         run: npm run build
