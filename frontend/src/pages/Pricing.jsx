@@ -99,13 +99,13 @@ export default function Pricing() {
               key={plan.tier}
               className={`relative rounded-xl border bg-white p-6 ${
                 plan.popular
-                  ? 'border-stone-800 shadow-lg'
+                  ? 'border-indigo-600 shadow-lg'
                   : 'border-stone-200 shadow-sm'
               }`}
             >
               {plan.popular && (
                 <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <span className="bg-stone-800 text-white px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+                  <span className="bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                     Most Popular
                   </span>
                 </div>

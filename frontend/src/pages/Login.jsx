@@ -103,7 +103,7 @@ export default function Login() {
       <div className="w-full max-w-[420px]">
         <div className="bg-white rounded-xl shadow-lg shadow-stone-200/50 border border-stone-200/80 overflow-hidden">
           {/* Header strip */}
-          <div className="bg-stone-800 px-8 py-6 text-center">
+          <div className="bg-indigo-600 px-8 py-6 text-center">
             <h1 className="text-2xl font-semibold tracking-tight text-white">
               Sign in to your account
             </h1>
@@ -159,7 +159,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-lg text-sm font-medium text-white bg-stone-800 hover:bg-stone-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-600 disabled:bg-stone-400 disabled:cursor-not-allowed transition-colors"
+                className="w-full py-3 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-stone-400 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Signing in...' : 'Sign in'}
               </button>

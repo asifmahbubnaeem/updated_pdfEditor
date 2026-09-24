@@ -1,19 +1,16 @@
 @import "tailwindcss";
 
-/* Global reset and layout so header/footer/content behave as expected */
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  min-height: 100%;
-}
+/*
+ * Tailwind's own Preflight (loaded above) already resets box-sizing,
+ * margins, `a { color: inherit }`, and `button { font: inherit; color:
+ * inherit; ... }` - correctly, inside its own cascade layer. Do NOT
+ * duplicate those rules here unlayered: per the CSS Cascade Layers spec,
+ * unlayered rules always win over layered ones regardless of specificity,
+ * so a plain `a { color: inherit }` here would silently override every
+ * `text-*` utility class on every link/button in the app (this actually
+ * happened - it's why text-white on nav buttons was rendering as
+ * near-black inherited text no matter what background color was used).
+ */
 
 body {
   min-height: 100vh;
@@ -21,15 +18,6 @@ body {
     sans-serif;
   background-color: #f5f5f4; /* stone-100, matches the app's color palette */
   color: #111827;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font: inherit;
 }
 
 #root {

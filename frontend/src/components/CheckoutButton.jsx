@@ -52,7 +52,7 @@ export default function CheckoutButton({ tier = 'pro', billingPeriod = 'monthly'
         className={`${className} ${
           loading
             ? 'bg-stone-400 cursor-not-allowed'
-            : 'bg-stone-800 hover:bg-stone-700'
+            : 'bg-indigo-600 hover:bg-indigo-700'
         } text-white px-6 py-3 rounded-lg font-medium transition-colors`}
       >
         {loading ? 'Processing...' : `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`}
