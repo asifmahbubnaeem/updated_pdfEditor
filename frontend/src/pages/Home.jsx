@@ -1,68 +1,74 @@
 import PageLayout from "../components/PageLayout";
 import { Link } from "react-router-dom";
 
-const features = [
-  { name: "lock pdf", path: "/create-password" },
-  { name: "unlock pdf", path: "/remove-password" },
-  { name: "doc to pdf", path: "/convert-doc" },
-  { name: "merge pdf files", path: "/merge-pdf" },
-  { name: "image to pdf", path: "/convert-image" },
-  { name: "rearrange pdf pages", path: "/rearrange-pages" },
-  { name: "delete pdf pages", path: "/delete-pages" },
-  { name: "rotate/delete pdf pages", path: "/rotate-pages" },
-  { name: "compress pdf files", path: "/compress-pdf" },
-  { name: "extract images from pdf file", path: "/extract-images" },
-  { name: "convert pdf to docx", path: "/pdf-2-docx" },
-  { name: "extract tables from pdf", path: "/extract-tables" },
-  { name: "csv to pdf", path: "/csv-to-pdf" },
-  { name: "table data extraction from image", path: "/img-to-tbl" },
-  { name: "text extraction from image", path: "/img-to-txt" },
+const categories = [
+  {
+    name: "Organize",
+    tools: [
+      { name: "Merge PDF files", path: "/merge-pdf" },
+      { name: "Rearrange pages", path: "/rearrange-pages" },
+      { name: "Delete pages", path: "/delete-pages" },
+      { name: "Rotate / delete pages", path: "/rotate-pages" },
+    ],
+  },
+  {
+    name: "Convert",
+    tools: [
+      { name: "DOC to PDF", path: "/convert-doc" },
+      { name: "PDF to DOCX", path: "/pdf-2-docx" },
+      { name: "Image to PDF", path: "/convert-image" },
+      { name: "CSV to PDF", path: "/csv-to-pdf" },
+    ],
+  },
+  {
+    name: "Extract",
+    tools: [
+      { name: "Extract images from PDF", path: "/extract-images" },
+      { name: "Extract tables from PDF", path: "/extract-tables" },
+      { name: "Table data from image", path: "/img-to-tbl" },
+      { name: "Text from image", path: "/img-to-txt" },
+    ],
+  },
+  {
+    name: "Protect & optimize",
+    tools: [
+      { name: "Lock PDF", path: "/create-password" },
+      { name: "Unlock PDF", path: "/remove-password" },
+      { name: "Compress PDF", path: "/compress-pdf" },
+    ],
+  },
 ];
 
 export default function Home() {
   return (
     <PageLayout>
-      <header style={{ textAlign: "center", marginBottom: "24px" }}>
-        <h1
-          style={{
-            fontSize: "28px",
-            fontWeight: 700,
-            marginBottom: "8px",
-          }}
-        >
-          Choose a Tool
+      <header className="text-center mb-10">
+        <h1 className="text-3xl font-bold text-stone-900 tracking-tight">
+          Choose a tool
         </h1>
-        <p style={{ color: "#4b5563", fontSize: "14px" }}>
+        <p className="mt-2 text-stone-500">
           Secure, convert, and organize your PDFs with a single click.
         </p>
       </header>
 
-      <div
-        style={{
-          display: "grid",
-          gap: "12px",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-        }}
-      >
-        {features.map((f) => (
-          <Link
-            key={f.path}
-            to={f.path}
-            style={{
-              padding: "16px",
-              backgroundColor: "#ffffff",
-              borderRadius: "12px",
-              border: "1px solid #e5e7eb",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-              textAlign: "center",
-              textDecoration: "none",
-              color: "#111827",
-              fontWeight: 500,
-              fontSize: "15px",
-            }}
-          >
-            {f.name}
-          </Link>
+      <div className="space-y-8">
+        {categories.map((category) => (
+          <section key={category.name}>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-3">
+              {category.name}
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {category.tools.map((tool) => (
+                <Link
+                  key={tool.path}
+                  to={tool.path}
+                  className="flex items-center justify-center text-center px-4 py-5 bg-white rounded-xl border border-stone-200 shadow-sm text-sm font-medium text-stone-800 hover:border-stone-300 hover:shadow-md transition-all"
+                >
+                  {tool.name}
+                </Link>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     </PageLayout>

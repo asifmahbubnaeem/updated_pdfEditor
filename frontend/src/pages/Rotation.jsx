@@ -3,7 +3,6 @@ import React, { useState, useRef } from "react";
 import { Document, Page } from "react-pdf";
 import { PDFDocument } from "pdf-lib";
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/Navbar";
 import { apiService, downloadBlob, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 
@@ -115,7 +114,6 @@ const handleSavePdf_backend = async () => {
   return (
 
     <PageLayout>
-      <NavBar />
     <div>
       <h2>Page Rotation & Delete</h2>
       {cooldown > 0 && (

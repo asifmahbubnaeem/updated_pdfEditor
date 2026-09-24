@@ -31,26 +31,18 @@ function App() {
     <Router>
       <AuthProvider>
         <SubscriptionProvider>
-          <div style={{ minHeight: "100vh", backgroundColor: "#f3f4f6" }}>
+          <div className="min-h-screen bg-stone-100">
             <Navbar />
 
             {/* Main layout: side ads + routed content */}
-            <div
-              style={{
-                maxWidth: "1200px",
-                margin: "0 auto",
-                padding: "16px",
-                display: "flex",
-                gap: "16px",
-              }}
-            >
+            <div className="max-w-[1200px] mx-auto p-4 flex gap-4">
               {/* Left sidebar ad (hidden on small screens via CSS) */}
               <div className="ad-sidebar-left">
                 <AdBanner position="left" />
               </div>
 
               {/* Main routed content */}
-              <main style={{ flex: 1 }}>
+              <main className="flex-1">
                 <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/Navbar";
 import { apiService, downloadBlob, handleApiError } from "../services/api.js";
 import { createRateLimitHandler } from "../utils/rateLimit.js";
 
@@ -48,7 +47,6 @@ export default function MergePdf() {
 
   return (
   	<PageLayout>
-  		<NavBar />
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50" style={{border: "2px solid #000", borderRadius: "15px",padding: "10px"}}>
       <h2 className="text-xl font-bold mb-4" style={{color: "green"}}>Upload Multiple PDFs</h2>
 

@@ -4,7 +4,6 @@ import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 // import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/Navbar";
 import { apiService } from "../services/api.js";
 
 GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -125,7 +124,6 @@ export default function RemovePassword() {
 
   return (
     <PageLayout>
-      <NavBar />
         <div className="p-4 flex flex-col items-center" style={{border: "2px solid #ccc", borderRadius: "5px",padding: "25px",display: "grid", flexDirection: "column", alignItems: "center" }}>
             {cooldown > 0 && (
               <p style={{ color: "red", marginTop: "10px" }}>

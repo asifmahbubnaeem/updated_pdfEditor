@@ -1,84 +1,72 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSubscription } from "../context/SubscriptionContext.jsx";
+
+const navLinkClasses = ({ isActive }) =>
+  `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+    isActive
+      ? "bg-stone-800 text-white"
+      : "text-stone-600 hover:text-stone-900 hover:bg-stone-100"
+  }`;
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { tier } = useSubscription();
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-6 py-3">
-        <div className="flex items-center justify-between gap-8">
-          {/* Left: navigation links */}
-          <div className="flex items-center gap-10">
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                `mr-4 px-3 py-2 rounded-md text-sm font-medium ${
-                  isActive
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`
-              }
-            >
-              Home_   
-            </NavLink>
+    <nav className="bg-white border-b border-stone-200 sticky top-0 z-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-16">
+          {/* Brand + primary nav */}
+          <div className="flex items-center gap-8">
+            <Link to="/" className="flex items-center gap-2 shrink-0">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-800 text-white text-sm font-bold">
+                P
+              </span>
+              <span className="text-base font-semibold text-stone-900 tracking-tight">
+                PDF Tools
+              </span>
+            </Link>
 
-            {isAuthenticated && (
-              <NavLink
-                to="/pricing"
-                className={({ isActive }) =>
-                  `px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`
-                }
-              >
-                _Pricing_
+            <div className="hidden sm:flex items-center gap-1">
+              <NavLink to="/" end className={navLinkClasses}>
+                Home
               </NavLink>
-            )}
+              {isAuthenticated && (
+                <NavLink to="/pricing" className={navLinkClasses}>
+                  Pricing
+                </NavLink>
+              )}
+            </div>
           </div>
 
-          {/* Right: user info / auth buttons */}
-          <div className="flex items-center gap-4">
+          {/* Right: user info / auth actions */}
+          <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="text-sm text-gray-700">
-                    <span className="font-medium">{user?.email}</span>
-                    {tier !== "free" && (
-                      <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                        {tier.charAt(0).toUpperCase() + tier.slice(1)}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={logout}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-                  >
-                    Logout
-                  </button>
+                <div className="hidden sm:flex items-center gap-2 text-sm text-stone-600">
+                  <span className="max-w-[180px] truncate">{user?.email}</span>
+                  {tier !== "free" && (
+                    <span className="px-2 py-0.5 bg-stone-800 text-white rounded-full text-xs font-medium capitalize">
+                      {tier}
+                    </span>
+                  )}
                 </div>
+                <button
+                  onClick={logout}
+                  className="px-3.5 py-1.5 text-sm font-medium text-stone-600 border border-stone-300 rounded-md hover:bg-stone-100 hover:text-stone-900 transition-colors"
+                >
+                  Logout
+                </button>
               </>
             ) : (
               <>
-                <NavLink
-                  to="/login"
-                  className={({ isActive }) =>
-                    `px-4 py-2 rounded-md text-sm font-medium ${
-                      isActive
-                        ? "bg-blue-100 text-blue-700"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`
-                  }
-                >
-                  Login_
+                <NavLink to="/login" className={navLinkClasses}>
+                  Login
                 </NavLink>
                 <NavLink
                   to="/register"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+                  className="px-4 py-2 bg-stone-800 text-white rounded-md text-sm font-medium hover:bg-stone-700 transition-colors"
                 >
                   Sign Up
                 </NavLink>

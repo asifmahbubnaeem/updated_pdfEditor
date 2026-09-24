@@ -1,6 +1,5 @@
 import React, { useState, useRef} from "react";
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/Navbar";
 import { apiService, downloadBlob, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 
@@ -100,7 +99,6 @@ export default function ConvertImage() {
 
 	return (
 		<PageLayout>
-      		<NavBar />
       		<div className="p-4 flex flex-col items-center">
             {cooldown > 0 && (
               <p style={{ color: "red", marginTop: "10px" }}>

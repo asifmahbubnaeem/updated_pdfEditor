@@ -6,7 +6,6 @@ import { apiService, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/Navbar";
 
 GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -119,7 +118,6 @@ export default function PdfToDocConvertion() {
 
   return (
     <PageLayout>
-      <NavBar />
         <div className="p-4 flex flex-col items-center" style={{border: "2px solid #000", borderRadius: "15px", padding: "10px"}}>
           <h2 className="text-xl font-bold mb-2" style={{color: 'green'}}>PDF To DOCX</h2>
 

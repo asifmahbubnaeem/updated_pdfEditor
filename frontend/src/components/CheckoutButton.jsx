@@ -37,7 +37,7 @@ export default function CheckoutButton({ tier = 'pro', billingPeriod = 'monthly'
     return (
       <button
         disabled
-        className={`${className} bg-gray-300 text-gray-500 cursor-not-allowed px-6 py-3 rounded-lg font-medium`}
+        className={`${className} bg-stone-100 text-stone-400 cursor-not-allowed px-6 py-3 rounded-lg font-medium`}
       >
         Current Plan
       </button>
@@ -51,8 +51,8 @@ export default function CheckoutButton({ tier = 'pro', billingPeriod = 'monthly'
         disabled={loading}
         className={`${className} ${
           loading
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-700'
+            ? 'bg-stone-400 cursor-not-allowed'
+            : 'bg-stone-800 hover:bg-stone-700'
         } text-white px-6 py-3 rounded-lg font-medium transition-colors`}
       >
         {loading ? 'Processing...' : `Upgrade to ${tier.charAt(0).toUpperCase() + tier.slice(1)}`}

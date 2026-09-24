@@ -21,7 +21,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { PDFDocument } from "pdf-lib"; // <== new import
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/Navbar";
 
 // import HoverMenu from '../components/HoverMenu';
 import Page2 from '../components/Page';
@@ -186,7 +185,6 @@ const handleSavePdf_backend = async () =>{
 };
   return (
     <PageLayout>
-      <NavBar />
       <div className="flex flex-col items-center p-6 bg-gray-50 min-h-screen">
         <h2 className="text-xl font-bold mb-4">
           Delete PDF Pages

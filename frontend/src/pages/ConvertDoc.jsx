@@ -3,7 +3,6 @@ import { apiService, downloadBlob, handleApiError } from "../services/api";
 import { createRateLimitHandler } from "../utils/rateLimit";
 
 import PageLayout from "../components/PageLayout";
-import NavBar from "../components/Navbar";
 
 export default function App() {
   const [cooldown, setCooldown] = useState(0);
@@ -41,7 +40,6 @@ export default function App() {
 
   return (
     <PageLayout>
-      <NavBar />
       <div className="p-6 text-center" style={{border: "2px solid #000", borderRadius: "15px", padding: "10px"}}>
         <h2 className="text-2xl font-bold mb-4" style={{color: "green"}}>Convert DOC to PDF</h2>
         <p>Upload your DOC file to convert it into PDF.</p>

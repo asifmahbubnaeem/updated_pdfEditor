@@ -59,25 +59,25 @@ export default function Pricing() {
   ];
 
   return (
-    <div className="bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="bg-stone-100 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-stone-900 tracking-tight">
             Simple, transparent pricing
           </h1>
-          <p className="mt-3 text-lg text-gray-600">
+          <p className="mt-3 text-lg text-stone-500">
             Choose the plan that's right for you
           </p>
         </div>
 
         {!isAuthenticated && (
           <div className="text-center mb-8">
-            <p className="text-gray-600">
-              <Link to="/register" className="text-blue-600 hover:text-blue-500 font-medium">
+            <p className="text-stone-600">
+              <Link to="/register" className="text-stone-900 underline underline-offset-2 font-medium hover:text-stone-600">
                 Sign up
               </Link>
               {' '}or{' '}
-              <Link to="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+              <Link to="/login" className="text-stone-900 underline underline-offset-2 font-medium hover:text-stone-600">
                 sign in
               </Link>
               {' '}to get started
@@ -86,9 +86,9 @@ export default function Pricing() {
         )}
 
         {tier === 'free' && isAuthenticated && (
-          <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Current usage:</strong> {usage.daily.used} / {limits.dailyOperations} operations today
+          <div className="mb-8 bg-white border border-stone-200 rounded-lg p-4 max-w-md mx-auto text-center">
+            <p className="text-sm text-stone-600">
+              <strong className="text-stone-900">Current usage:</strong> {usage.daily.used} / {limits.dailyOperations} operations today
             </p>
           </div>
         )}
@@ -97,40 +97,39 @@ export default function Pricing() {
           {plans.map((plan) => (
             <div
               key={plan.tier}
-              className={`relative rounded-lg border ${
+              className={`relative rounded-xl border bg-white p-6 ${
                 plan.popular
-                  ? 'border-blue-500 shadow-md'
-                  : 'border-gray-200'
-              } bg-white p-6`}
+                  ? 'border-stone-800 shadow-lg'
+                  : 'border-stone-200 shadow-sm'
+              }`}
             >
               {plan.popular && (
                 <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="bg-stone-800 text-white px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
                     Most Popular
                   </span>
                 </div>
               )}
 
-              {plan.current && (
-                <div className="absolute top-4 right-4">
-                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                    Current Plan
-                  </span>
-                </div>
-              )}
-
               <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                <div className="flex items-center justify-center gap-2">
+                  <h3 className="text-xl font-bold text-stone-900">{plan.name}</h3>
+                  {plan.current && (
+                    <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-medium">
+                      Current Plan
+                    </span>
+                  )}
+                </div>
                 <div className="mt-3">
-                  <span className="text-3xl font-bold text-gray-900">
+                  <span className="text-3xl font-bold text-stone-900">
                     {plan.price}
                   </span>
-                  <span className="text-sm text-gray-500 ml-1">
+                  <span className="text-sm text-stone-500 ml-1">
                     {plan.period}
                   </span>
                 </div>
                 {plan.priceYearly && (
-                  <div className="mt-1.5 text-xs text-gray-500">
+                  <div className="mt-1.5 text-xs text-stone-500">
                     or {plan.priceYearly} {plan.periodYearly}
                   </div>
                 )}
@@ -138,8 +137,9 @@ export default function Pricing() {
 
               <ul className="mt-6 space-y-3">
                 {plan.features.map((feature, index) => (
-                  <li key={index} className="text-sm text-gray-700">
-                    {feature}
+                  <li key={index} className="text-sm text-stone-600 flex items-start gap-2">
+                    <span className="text-stone-400 mt-0.5">&#10003;</span>
+                    <span>{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -148,12 +148,12 @@ export default function Pricing() {
                 {plan.current ? (
                   <button
                     disabled
-                    className="w-full bg-gray-300 text-gray-500 cursor-not-allowed px-6 py-3 rounded-lg font-medium"
+                    className="w-full bg-stone-100 text-stone-400 cursor-not-allowed px-6 py-3 rounded-lg font-medium"
                   >
                     Current Plan
                   </button>
                 ) : plan.tier === 'free' ? (
-                  <div className="text-center text-sm text-gray-500">
+                  <div className="text-center text-sm text-stone-400">
                     Free forever
                   </div>
                 ) : (
@@ -169,7 +169,7 @@ export default function Pricing() {
         </div>
 
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-stone-500">
             All plans include secure file processing and data privacy protection.
           </p>
         </div>
