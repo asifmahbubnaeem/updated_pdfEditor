@@ -5,10 +5,13 @@ import logger from '../utils/logger.js';
 
 dotenv.config();
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-06-20.acacia',
-});
+// Initialize Stripe. Deliberately not pinning `apiVersion` here - let the
+// installed `stripe` package use its own matched default (see
+// node_modules/stripe/cjs/apiVersion.js). A hardcoded version string can
+// silently stop existing if it doesn't match what this SDK version
+// actually supports, which is exactly what happened with the previous
+// '2024-06-20.acacia' value.
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Subscription price IDs (set these in Stripe Dashboard)
 const PRICE_IDS = {
