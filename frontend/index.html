@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <!--
+      This app is light-themed only (no dark variant). Without this, some
+      browsers/OSes (Chrome's "Auto dark mode for web content", Android
+      WebView, etc.) apply their own heuristic recoloring to pages that
+      don't declare a scheme, which can wrongly invert intentionally-dark
+      elements like the active navbar button - explicit white-on-dark text
+      turns into low-contrast dark-on-dark. Declaring "light" opts the page
+      out of that heuristic entirely.
+    -->
+    <meta name="color-scheme" content="light" />
+    <title>PDF Tools</title>
   </head>
   <body>
     <div id="root"></div>
