@@ -12,6 +12,7 @@ import Pricing from "./pages/Pricing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import Account from "./pages/Account";
 import MergePdf from "./pages/MergePdf"
 import ConvertImage from "./pages/ConvertImage";
 import RearrangePages from "./pages/RearrangePages";
@@ -49,7 +50,15 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/payment/success" element={<PaymentSuccess />} />
-              
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute>
+                    <Account />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Protected routes - require authentication */}
               <Route
                 path="/create-password"

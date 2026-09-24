@@ -257,8 +257,28 @@ export const apiService = {
     return response.data;
   },
 
+  async getSubscriptionBillingDetails() {
+    const response = await api.get('/api/payment/subscription');
+    return response.data;
+  },
+
+  async getTransactions() {
+    const response = await api.get('/api/subscription/transactions');
+    return response.data.transactions;
+  },
+
   async createCheckoutSession(priceId) {
     const response = await api.post('/api/payment/create-checkout', { priceId });
+    return response.data;
+  },
+
+  async createPortalSession() {
+    const response = await api.post('/api/payment/create-portal');
+    return response.data;
+  },
+
+  async cancelSubscription(cancelAtPeriodEnd = true) {
+    const response = await api.post('/api/payment/cancel-subscription', { cancelAtPeriodEnd });
     return response.data;
   },
 

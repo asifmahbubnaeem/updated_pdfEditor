@@ -44,14 +44,17 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
-                <div className="hidden sm:flex items-center gap-2 text-sm text-stone-600">
+                <Link
+                  to="/account"
+                  className="hidden sm:flex items-center gap-2 text-sm text-stone-600 hover:text-stone-900 transition-colors"
+                >
                   <span className="max-w-[180px] truncate">{user?.email}</span>
                   {tier !== "free" && (
                     <span className="px-2 py-0.5 bg-indigo-600 text-white rounded-full text-xs font-medium capitalize">
                       {tier}
                     </span>
                   )}
-                </div>
+                </Link>
                 <button
                   onClick={logout}
                   className="px-3.5 py-1.5 text-sm font-medium text-stone-600 border border-stone-300 rounded-md hover:bg-stone-100 hover:text-stone-900 transition-colors"
