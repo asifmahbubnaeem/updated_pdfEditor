@@ -57,3 +57,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Local tooling backups (may contain pasted secrets)
+cursor-chat-backup/
+frontend/keys/
